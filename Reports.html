@@ -1,0 +1,71 @@
+<div class="p-4 no-print">
+  <h2 class="text-2xl font-bold text-teal-800 mb-6">Financial Reporting</h2>
+  <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 items-end">
+         <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">From Date</label>
+            <input type="date" id="rep_start" class="w-full rounded border-gray-300 text-sm">
+         </div>
+         <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">To Date</label>
+            <input type="date" id="rep_end" class="w-full rounded border-gray-300 text-sm">
+         </div>
+         <div>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Report Type</label>
+            <select id="rep_type" class="w-full rounded border-gray-300 text-sm">
+                <option value="Statement">General Ledger (Statement)</option>
+                <option value="Income">Income Statement Only</option>
+                <option value="Expense">Expense Report Only</option>
+            </select>
+         </div>
+         <div>
+            <button onclick="window.generateCustomReport()" class="w-full bg-teal-600 text-white py-2 rounded font-bold hover:bg-teal-700 shadow">
+                <i class="fa-solid fa-file-pdf mr-2"></i> Generate
+            </button>
+         </div>
+      </div>
+  </div>
+</div>
+<script>
+  (function waitForjQuery() {
+      if (typeof window.jQuery === 'undefined') {
+          setTimeout(waitForjQuery, 100);
+          return;
+      }
+
+      var transactions = [];
+      (function(){
+          const today = new Date().toISOString().split('T')[0];
+          const startYear = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
+          $('#rep_start').val(startYear); $('#rep_end').val(today);
+          if(typeof google !== 'undefined') {
+              // Range_Accounts_Journal
+              google.script.run.withSuccessHandler(d => { transactions = d; }).getData('HQ', 'Range_Accounts_Journal');
+          }
+      })();
+
+      window.generateCustomReport = function() {
+          const start = $('#rep_start').val();
+          const end = $('#rep_end').val();
+          const type = $('#rep_type').val();
+          const s = new Date(start); const e = new Date(end);
+
+          const filtered = transactions.filter(t => {
+              const d = new Date(t.Date);
+              return d >= s && d <= e && (type === 'Statement' || t.Type === type);
+          });
+          filtered.sort((a,b) => new Date(a.Date) - new Date(b.Date));
+
+          let totDeb = 0, totCred = 0;
+          let html = `<div class="p-8 font-sans"><h1 class="text-2xl font-bold mb-4 border-b pb-2">Financial Report (${start} to ${end})</h1><table class="w-full text-sm text-left border-collapse"><thead><tr class="bg-gray-100"><th class="p-2 border">Date</th><th class="p-2 border">Desc</th><th class="p-2 border text-right">Debit</th><th class="p-2 border text-right">Credit</th></tr></thead><tbody>`;
+          filtered.forEach(t => {
+              const amt = Number(t.Amount);
+              if(t.Type === 'Income') { totCred += amt; html += `<tr><td class="p-2 border">${t.Date}</td><td class="p-2 border">${t.Description}</td><td class="p-2 border"></td><td class="p-2 border text-right text-green-600">${amt.toLocaleString()}</td></tr>`; }
+              else { totDeb += amt; html += `<tr><td class="p-2 border">${t.Date}</td><td class="p-2 border">${t.Description}</td><td class="p-2 border text-right text-red-600">${amt.toLocaleString()}</td><td class="p-2 border"></td></tr>`; }
+          });
+          html += `<tr class="font-bold bg-gray-50"><td colspan="2" class="p-2 text-right">Totals</td><td class="p-2 text-right">${totDeb.toLocaleString()}</td><td class="p-2 text-right">${totCred.toLocaleString()}</td></tr></tbody></table><div class="mt-4 font-bold text-lg">Net Balance: Rs ${(totCred-totDeb).toLocaleString()}</div><div class="text-center mt-6 no-print"><button onclick="window.print()" class="bg-teal-600 text-white px-6 py-2 rounded shadow font-bold hover:bg-teal-700">Print</button></div></div>`;
+
+          const win = window.open('', '_blank'); win.document.write('<html><head><script src="https://cdn.tailwindcss.com"><\/script><style>@media print { .no-print { display: none; } body { -webkit-print-color-adjust: exact; } }</style></head><body>'+html+'</body></html>');
+      };
+  })();
+</script>

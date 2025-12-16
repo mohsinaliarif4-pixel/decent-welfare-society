@@ -1,0 +1,357 @@
+<div class="p-4 no-print">
+
+  <!-- VIEW 1: PATIENT SELECTION LIST -->
+  <div id="view-patient-list">
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h2 class="text-2xl font-bold text-teal-800">
+          Clinical Records <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-full">v3.5</span>
+        </h2>
+        <p class="text-gray-600 text-sm">Select a patient to view history or add visits</p>
+      </div>
+      <div>
+         <button onclick="window.loadPatients()" class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-4 py-2 rounded-lg shadow-sm text-sm font-medium border border-blue-200 transition">
+           <i class="fa-solid fa-arrows-rotate mr-1"></i> Refresh List
+         </button>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="bg-gradient-to-r from-teal-50 to-white px-6 py-4 border-b border-gray-100">
+        <h3 class="text-teal-800 font-bold text-lg"><i class="fa-solid fa-user-doctor mr-2"></i>Patient List</h3>
+      </div>
+      <div class="p-4 w-full">
+        <table id="patientsTable" class="display w-full text-sm text-left text-gray-500" style="width:100%">
+          <thead class="bg-gray-50 text-gray-700 uppercase text-xs font-bold tracking-wider">
+            <tr>
+              <th class="rounded-l-lg py-3 px-4">MR No</th>
+              <th class="py-3 px-4">Name</th>
+              <th class="py-3 px-4">Father/Husband</th>
+              <th class="py-3 px-4">Age/Gender</th>
+              <th class="py-3 px-4">Contact</th>
+              <th class="py-3 px-4">Dept</th>
+              <th class="rounded-r-lg py-3 px-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 1: CLINICAL HISTORY DOSSIER -->
+  <div id="clinical_history_modal" class="fixed inset-0 z-40 overflow-y-auto hidden bg-gray-900 bg-opacity-75 flex justify-center items-start pt-10 pb-10">
+    <div class="relative w-11/12 md:w-3/4 lg:w-4/5 bg-white rounded-xl shadow-2xl overflow-hidden animate-fade-in-down flex flex-col min-h-[80vh] max-h-[90vh]">
+
+      <!-- Header -->
+      <div class="bg-teal-800 px-6 py-4 flex justify-between items-center shrink-0">
+        <div class="text-white">
+           <h3 class="text-xl font-bold" id="profile_name">Patient Name</h3>
+           <div class="flex gap-4 text-xs text-teal-100 mt-1 opacity-90">
+             <span>MR: <b id="profile_mr">...</b></span>
+             <span>|</span>
+             <span>Father: <b id="profile_father">...</b></span>
+             <span>|</span>
+             <span>Dept: <b id="profile_dept_tag">...</b></span>
+           </div>
+        </div>
+        <button onclick="window.closeHistoryModal()" class="text-teal-200 hover:text-white transition-colors bg-teal-900 bg-opacity-50 hover:bg-opacity-100 rounded-full w-8 h-8 flex items-center justify-center">
+           <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <!-- Toolbar -->
+      <div class="px-6 py-3 bg-gray-50 border-b flex justify-between items-center shrink-0">
+         <h4 class="text-gray-700 font-bold text-sm uppercase tracking-wide">Medical History</h4>
+         <button onclick="window.openVisitForm()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded shadow-sm text-sm flex items-center transition transform hover:scale-105">
+            <i class="fa-solid fa-plus-circle mr-2"></i> Add New Visit
+         </button>
+      </div>
+      <!-- History Content -->
+      <div class="overflow-y-auto p-6 flex-grow bg-white custom-scrollbar">
+         <div class="flex flex-col md:flex-row gap-4 mb-6 p-4 bg-teal-50 rounded-lg border border-teal-100">
+             <div class="w-20 h-20 bg-white rounded-full border-2 border-teal-200 overflow-hidden flex-shrink-0">
+                 <img id="profile_img_preview" src="" class="w-full h-full object-cover hidden">
+                 <div id="profile_img_placeholder" class="w-full h-full flex items-center justify-center text-teal-300"><i class="fa-solid fa-user text-3xl"></i></div>
+             </div>
+             <div class="flex-grow text-sm text-gray-700">
+                 <div class="grid grid-cols-2 gap-2">
+                     <p><span class="font-bold">Age/Gender:</span> <span id="profile_age">...</span></p>
+                     <p><span class="font-bold">Contact:</span> <span id="profile_contact">...</span></p>
+                     <p><span class="font-bold">CNIC:</span> <span id="profile_cnic">...</span></p>
+                     <p class="col-span-2"><span class="font-bold">Address:</span> <span id="profile_address">...</span></p>
+                 </div>
+             </div>
+         </div>
+         <div id="history_body" class="space-y-4"></div>
+         <div id="history_loading" class="text-center py-10 text-gray-400 italic hidden">Loading clinical history...</div>
+      </div>
+
+      <!-- Footer Info -->
+      <div class="bg-gray-50 border-t px-6 py-2 text-xs text-gray-500 shrink-0 flex justify-between">
+          <span id="history_count">0 Records Found</span>
+          <span>Click "Add New Visit" to update record</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 2: ADD/EDIT VISIT FORM -->
+<div id="visit_modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="relative w-11/12 md:w-2/3 bg-white rounded-xl shadow-2xl overflow-hidden animate-fade-in-down max-h-[90vh] flex flex-col">
+
+    <!-- Header -->
+    <div class="bg-teal-700 px-6 py-4 flex justify-between items-center shrink-0">
+      <h3 class="text-xl font-bold text-white" id="modal_title">New Clinical Visit</h3>
+      <button onclick="window.closeVisitForm()" class="text-teal-200 hover:text-white transition-colors">
+         <i class="fa-solid fa-xmark text-2xl"></i>
+      </button>
+    </div>
+
+    <!-- Form Content -->
+    <div class="p-6 overflow-y-auto custom-scrollbar flex-grow">
+      <form id="form_clinical" onsubmit="window.handleVisitSubmit(event)">
+        <input type="hidden" name="Patient_ID" id="form_pid">
+        <input type="hidden" name="MR_Number" id="form_mr">
+        <input type="hidden" name="Patient_Name" id="form_p_name">
+        <!-- AUDIT FIX: Added Department Field -->
+        <input type="hidden" name="Department" id="form_dept">
+        <input type="hidden" name="Folder_Link" id="form_folder">
+        <input type="hidden" name="_row" id="form_row">
+        <input type="hidden" name="Visit_ID" id="form_vid">
+        <input type="hidden" name="Before_Image_URL" id="form_img_before_url">
+        <input type="hidden" name="After_Image_URL" id="form_img_after_url">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <div><label class="block text-sm font-bold text-gray-700 mb-1">Date</label><input type="date" name="Date" id="input_date" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"></div>
+           <div><label class="block text-sm font-bold text-gray-700 mb-1">Doctor Name</label><input type="text" name="Doctor_Name" id="input_doctor" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"></div>
+           <div class="md:col-span-2"><label class="block text-sm font-bold text-gray-700 mb-1">Diagnosis</label><input type="text" name="Diagnosis" id="input_diagnosis" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"></div>
+           <div class="md:col-span-2"><label class="block text-sm font-bold text-gray-700 mb-1">Treatment / Procedure</label><textarea name="Treatment_Type" id="input_treatment" rows="2" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"></textarea></div>
+           <!-- IMAGES -->
+           <div class="border-2 border-dashed border-gray-200 p-4 rounded-lg bg-gray-50 text-center"><label class="block text-xs font-bold text-gray-500 uppercase mb-2">Before Image</label><input type="file" id="img_before" accept="image/*" class="text-sm w-full mb-2"><div id="preview_before" class="text-xs text-blue-600 truncate h-5"></div></div>
+           <div class="border-2 border-dashed border-gray-200 p-4 rounded-lg bg-gray-50 text-center"><label class="block text-xs font-bold text-gray-500 uppercase mb-2">After Image</label><input type="file" id="img_after" accept="image/*" class="text-sm w-full mb-2"><div id="preview_after" class="text-xs text-green-600 truncate h-5"></div></div>
+           <div class="md:col-span-2"><label class="block text-sm font-bold text-gray-700 mb-1">Clinical Notes</label><textarea name="Clinical_Notes" id="input_notes" rows="3" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"></textarea></div>
+        </div>
+
+        <!-- Footer (Inside Form) -->
+        <div class="flex flex-row-reverse gap-3 mt-6 pt-4 border-t items-center">
+            <button type="submit" id="btn_save_visit" class="inline-flex justify-center rounded-lg border border-transparent shadow-sm px-6 py-2 bg-teal-600 text-base font-medium text-white hover:bg-teal-700 focus:outline-none">Save Visit</button>
+            <button type="button" id="btn_refer" onclick="window.referPatientForSurgery()" class="hidden inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none">
+                <i class="fa-solid fa-hospital-user mr-2 mt-1"></i> Refer for Surgery
+            </button>
+            <button type="button" onclick="window.closeVisitForm()" class="inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-6 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .animate-fade-in-down { animation: fadeInDown 0.3s ease-out; }
+  @keyframes fadeInDown { from { opacity: 0; transform: translate3d(0, -20px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+  .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  .dataTables_wrapper .dataTables_length select { border-radius: 0.5rem; border-color: #e5e7eb; padding: 4px 24px 4px 8px; }
+  .dataTables_wrapper .dataTables_filter input { border-radius: 0.5rem; border-color: #e5e7eb; padding: 4px 8px; margin-left: 8px; }
+  table.dataTable.display tbody tr:hover { background-color: #f0fdfa; cursor: pointer; }
+  table.dataTable.display tbody td { padding: 12px 16px; border-top: 1px solid #f3f4f6; }
+</style>
+
+<script>
+  // DEFINE GLOBALS
+  var patientsDB = [];
+  var currentPatient = null;
+  var currentHistory = [];
+  var isEditMode = false;
+
+  function formatDriveUrl(url) {
+      if (!url) return '';
+      const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) { return 'https://lh3.googleusercontent.com/d/' + match[1]; }
+      return url;
+  }
+
+  // ATTACH FUNCTIONS TO WINDOW
+  window.loadPatients = function() {
+      if(typeof google === 'undefined') return;
+      $('#patientsTable tbody').html('<tr><td colspan="7" class="text-center py-10 text-gray-500"><i class="fa-solid fa-circle-notch fa-spin text-teal-600 text-2xl mb-2"></i><br>Loading Patients...</td></tr>');
+
+      google.script.run.withSuccessHandler(function(data) {
+        patientsDB = data;
+
+        // Destroy previous instance
+        if ($.fn.DataTable.isDataTable('#patientsTable')) {
+            $('#patientsTable').DataTable().destroy();
+        }
+
+        if (!data || data.length === 0) {
+            $('#patientsTable tbody').html('<tr><td colspan="7" class="text-center py-10 bg-gray-50 text-gray-500 border border-dashed rounded-lg">No records found.</td></tr>');
+            return;
+        }
+
+        // Render Table
+        $('#patientsTable').DataTable({
+          data: data,
+          destroy: true,
+          scrollX: true,
+          autoWidth: false,
+          order: [[0, 'desc']],
+          columns: [
+            { data: 'MR_Number', className: "font-bold text-gray-800", defaultContent: '-' },
+            { data: 'Full_Name', className: "font-semibold text-teal-700", defaultContent: '-' },
+            { data: 'Father_Name', defaultContent: '-' },
+            { data: null, defaultContent: '-', render: r => `${r.Age || '-'} / ${r.Gender || '-'}` },
+            { data: 'Contact_Number', defaultContent: '-' },
+            { data: 'Department', defaultContent: 'General', render: d => `<span class="px-2 py-1 bg-gray-100 rounded text-xs">${d}</span>` },
+            { data: null, className: "text-right", defaultContent: '',
+               render: function(data, type, row) {
+                 return `<button onclick="window.openHistoryModal(${row._row})" class="bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center ml-auto"><i class="fa-solid fa-folder-open mr-2"></i> Open History</button>`;
+              }
+            }
+          ],
+          dom: '<"flex justify-between items-center mb-4"lf>rtip',
+          language: { search: "", searchPlaceholder: "Search patients...", lengthMenu: "_MENU_" }
+        });
+
+        // FIX: Force layout adjustment
+        setTimeout(function() {
+             $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
+        }, 300);
+
+      }).getData('LIMB_CENTRE', 'Limb_Patients');
+  };
+
+  window.openHistoryModal = function(rowId) {
+      currentPatient = patientsDB.find(p => p._row === rowId); if(!currentPatient) return;
+      $('#profile_name').text(currentPatient.Full_Name); $('#profile_mr').text(currentPatient.MR_Number); $('#profile_father').text(currentPatient.Father_Name || '-'); $('#profile_age').text(`${currentPatient.Age} / ${currentPatient.Gender}`); $('#profile_contact').text(currentPatient.Contact_Number); $('#profile_cnic').text(currentPatient.CNIC); $('#profile_address').text(currentPatient.Address);
+      $('#profile_dept_tag').text(currentPatient.Department || 'General');
+
+      if(currentPatient.Photo_URL) { $('#profile_img_preview').attr('src', formatDriveUrl(currentPatient.Photo_URL)).removeClass('hidden'); $('#profile_img_placeholder').addClass('hidden'); } else { $('#profile_img_preview').addClass('hidden'); $('#profile_img_placeholder').removeClass('hidden'); }
+
+      $('#form_pid').val(currentPatient.Patient_ID); $('#form_mr').val(currentPatient.MR_Number); $('#form_p_name').val(currentPatient.Full_Name); $('#form_folder').val(currentPatient.Folder_Link);
+      // Auto-fill Department for new visits
+      $('#form_dept').val(currentPatient.Department || 'General');
+
+      $('#clinical_history_modal').removeClass('hidden'); loadHistoryTable(currentPatient.Patient_ID);
+  };
+
+  window.closeHistoryModal = function() { $('#clinical_history_modal').addClass('hidden'); currentPatient = null; };
+
+  function loadHistoryTable(patientId) {
+      const container = $('#history_body'); container.empty();
+      $('#history_count').text(`0 Records Found`); $('#history_loading').removeClass('hidden');
+      google.script.run.withSuccessHandler(function(data) {
+          $('#history_loading').addClass('hidden');
+          currentHistory = data.filter(r => r.Patient_ID === patientId);
+          $('#history_count').text(`${currentHistory.length} Records Found`);
+          if(currentHistory.length === 0) { container.html('<div class="text-center py-10 bg-gray-50 rounded-lg border border-dashed text-gray-400 font-medium">No clinical history recorded.<br>Click <b>Add New Visit</b> to start.</div>'); return; }
+          currentHistory.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+          currentHistory.forEach(r => {
+             let imgs = '';
+             if(r.Before_Image_URL) imgs += `<a href="${r.Before_Image_URL}" target="_blank" class="inline-flex items-center gap-1 text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded text-xs border border-blue-200"><i class="fa-solid fa-image"></i> Before</a>`;
+             if(r.After_Image_URL) imgs += `<a href="${r.After_Image_URL}" target="_blank" class="inline-flex items-center gap-1 text-green-600 bg-green-50 hover:bg-green-100 px-2 py-1 rounded text-xs border border-green-200"><i class="fa-solid fa-image"></i> After</a>`;
+             if(imgs) imgs = `<div class="flex gap-2 mt-2">${imgs}</div>`;
+
+             const isSurgery = r.Diagnosis === 'Surgery Performed';
+             const treatmentDisplay = isSurgery ? `<div class="bg-yellow-50 p-2 rounded border border-yellow-100"><span class="block text-xs text-yellow-800 font-bold uppercase">Surgery Outcome Note</span>${r.Clinical_Notes || '-'}</div>` : `<div class="bg-gray-50 p-2 rounded"><span class="block text-xs text-gray-400 font-bold uppercase">Treatment</span>${r.Treatment_Type || '-'}</div>`;
+             const notesDisplay = isSurgery ? '' : (r.Clinical_Notes ? `<div class="mt-2 text-xs text-gray-500 italic border-t pt-2">Notes: ${r.Clinical_Notes}</div>` : '');
+             const doctorBadge = isSurgery ? `<span class="bg-purple-100 text-purple-700 px-1 rounded text-[10px] ml-2">SURGEON</span>` : '';
+
+             container.append(`
+               <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition relative group">
+                  <div class="flex justify-between items-start mb-2">
+                     <div><span class="text-xs font-bold text-teal-600 uppercase tracking-wide mb-1 block">Visit Date: ${r.Date}</span><h4 class="text-gray-800 font-bold text-sm">Dr. ${r.Doctor_Name} ${doctorBadge}</h4></div>
+                     <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition"><button onclick="window.editVisit(${r._row})" class="text-green-600 hover:bg-green-50 p-1.5 rounded transition"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="window.deleteVisit(${r._row})" class="text-red-600 hover:bg-red-50 p-1.5 rounded transition"><i class="fa-solid fa-trash-can"></i></button></div>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                     <div class="bg-gray-50 p-2 rounded"><span class="block text-xs text-gray-400 font-bold uppercase">Diagnosis</span>${r.Diagnosis || '-'}</div>
+                     ${treatmentDisplay}
+                  </div>
+                  ${notesDisplay}
+                  ${imgs}
+               </div>
+             `);
+          });
+      }).getData('LIMB_CENTRE', 'Clinical_Records');
+  }
+
+  window.openVisitForm = function() {
+      isEditMode = false; $('#form_clinical')[0].reset();
+      $('#modal_title').text('New Clinical Visit');
+      $('#form_pid').val(currentPatient.Patient_ID); $('#form_mr').val(currentPatient.MR_Number); $('#form_p_name').val(currentPatient.Full_Name); $('#form_folder').val(currentPatient.Folder_Link);
+      // Ensure department is carried over
+      $('#form_dept').val(currentPatient.Department || 'General');
+      $('#input_date').val(new Date().toISOString().split('T')[0]);
+      $('#preview_before').text(''); $('#preview_after').text(''); $('#form_img_before_url').val(''); $('#form_img_after_url').val('');
+      $('#btn_refer').removeClass('hidden');
+      $('#visit_modal').removeClass('hidden');
+  };
+
+  window.closeVisitForm = function() { $('#visit_modal').addClass('hidden'); };
+
+  window.editVisit = function(rowId) {
+      const rec = currentHistory.find(r => r._row === rowId); if(!rec) return;
+      isEditMode = true; $('#modal_title').text('Edit Clinical Record'); $('#visit_modal').removeClass('hidden'); $('#btn_refer').addClass('hidden'); // Hide Refer Button in Edit
+      $('#form_row').val(rec._row); $('#form_vid').val(rec.Visit_ID); $('#form_pid').val(rec.Patient_ID); $('#input_date').val(rec.Date); $('#input_doctor').val(rec.Doctor_Name); $('#input_diagnosis').val(rec.Diagnosis); $('#input_treatment').val(rec.Treatment_Type); $('#input_notes').val(rec.Clinical_Notes);
+      $('#form_dept').val(rec.Department); // Maintain existing record dept
+      $('#form_img_before_url').val(rec.Before_Image_URL || ''); $('#form_img_after_url').val(rec.After_Image_URL || '');
+      $('#preview_before').html(rec.Before_Image_URL ? '<i class="fa-solid fa-check text-green-500"></i> Saved' : ''); $('#preview_after').html(rec.After_Image_URL ? '<i class="fa-solid fa-check text-green-500"></i> Saved' : '');
+  };
+
+  window.deleteVisit = function(rowId) { if(!confirm("Delete record?")) return; google.script.run.withSuccessHandler(() => { loadHistoryTable(currentPatient.Patient_ID); }).deleteData('LIMB_CENTRE', 'Clinical_Records', rowId); };
+
+  // --- REFERRAL LOGIC ---
+  window.referPatientForSurgery = function() {
+      const procedure = $('#input_treatment').val();
+      if(!procedure) { alert("Please enter a 'Treatment/Procedure' before referring for surgery."); return; }
+      if(!confirm(`Refer this patient to Surgery Waiting List for "${procedure}"?`)) return;
+      const referData = {
+          Surgery_ID: "S-" + new Date().getTime(),
+          Patient_ID: $('#form_pid').val(),
+          MR_Number: $('#form_mr').val(),
+          Patient_Name: $('#form_p_name').val(),
+          Procedure: procedure,
+          Status: "Pending"
+      };
+      $('#btn_refer').text('Referring...').prop('disabled', true);
+      google.script.run.withSuccessHandler(() => {
+          alert("Patient added to Surgery Waiting List!");
+          // Now save the clinical visit as normal
+          $('#form_clinical').submit();
+      }).addData('LIMB_CENTRE', 'Surgery_Log', referData);
+  };
+
+  window.handleVisitSubmit = function(e) {
+      e.preventDefault(); const btn = $('#btn_save_visit'); const originalText = btn.text(); btn.text('Processing...').prop('disabled', true);
+      const formData = {}; $('#form_clinical').serializeArray().forEach(i => formData[i.name] = i.value);
+      if(!isEditMode) { formData['Visit_ID'] = "V-" + new Date().getTime(); }
+      let folderId = "1R7Brrb1gfQe_ihayIeC_STJw8GeSC29X";
+      if(formData.Folder_Link) { const match = formData.Folder_Link.match(/folders\/([-a-zA-Z0-9_]+)/); if(match) folderId = match[1]; }
+
+      const fileBefore = document.getElementById('img_before').files[0], fileAfter = document.getElementById('img_after').files[0];
+      const uploadQueue = [];
+      if(fileBefore) uploadQueue.push({ file: fileBefore, field: 'Before_Image_URL', name: `Before_${formData.Visit_ID}` });
+      if(fileAfter) uploadQueue.push({ file: fileAfter, field: 'After_Image_URL', name: `After_${formData.Visit_ID}` });
+
+      const processQueue = (idx) => {
+          if(idx >= uploadQueue.length) { saveToSheet(formData, btn, originalText); return; }
+          const item = uploadQueue[idx]; btn.text(`Uploading Image ${idx+1}...`);
+          const reader = new FileReader(); reader.onload = function(ev) { google.script.run.withSuccessHandler((url) => { formData[item.field] = url; processQueue(idx + 1); }).uploadFileToFolder(ev.target.result, item.name, folderId); }; reader.readAsDataURL(item.file);
+      };
+      processQueue(0);
+  };
+
+  function saveToSheet(data, btn, originalText) {
+      btn.text('Saving Record...');
+      const onSuccess = () => { alert(isEditMode ? "Record Updated!" : "Record Added!"); closeVisitForm(); loadHistoryTable(data.Patient_ID); btn.text(originalText).prop('disabled', false); };
+      const onError = (err) => { alert("Error: " + err.message); btn.text(originalText).prop('disabled', false); };
+
+      if(!isEditMode) google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onError).addData('LIMB_CENTRE', 'Clinical_Records', data);
+      else google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onError).updateData('LIMB_CENTRE', 'Clinical_Records', data['_row'], data);
+  }
+
+  // --- INIT: Force Load ---
+  (function(){
+      const init = () => { if(window.loadPatients) window.loadPatients(); };
+      if (typeof $ === 'undefined') { setTimeout(init, 500); } else { $(document).ready(init); }
+  })();
+</script>

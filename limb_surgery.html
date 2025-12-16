@@ -1,0 +1,334 @@
+<div class="p-4 no-print">
+
+  <!-- HEADER -->
+  <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+    <div>
+      <h2 class="text-2xl font-bold text-teal-800">
+        Surgery Scheduler <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-full">v3.0</span>
+      </h2>
+      <p class="text-gray-600 text-sm">OT Management & Clinical Integration</p>
+    </div>
+
+    <div class="flex gap-2">
+      <button onclick="loadSurgeryData()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium py-2 px-4 rounded-lg shadow-sm border border-blue-200 transition">
+        <i class="fa-solid fa-arrows-rotate mr-1"></i> Refresh
+      </button>
+      <button onclick="openRequestForm()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition transform hover:scale-105">
+        <i class="fa-solid fa-user-plus mr-2"></i> Add to Waiting List
+      </button>
+    </div>
+  </div>
+
+  <!-- STATS SUMMARY -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+     <div class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-purple-500">
+        <div class="text-xs text-gray-400 font-bold uppercase">Waiting List</div>
+        <div class="text-xl font-bold text-gray-800" id="count_pending">0</div>
+     </div>
+     <div class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-blue-500">
+        <div class="text-xs text-gray-400 font-bold uppercase">Scheduled</div>
+        <div class="text-xl font-bold text-gray-800" id="count_scheduled">0</div>
+     </div>
+     <div class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-green-500">
+        <div class="text-xs text-gray-400 font-bold uppercase">Surgeries Done</div>
+        <div class="text-xl font-bold text-gray-800" id="count_done">0</div>
+     </div>
+     <div class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-red-500">
+        <div class="text-xs text-gray-400 font-bold uppercase">Postponed</div>
+        <div class="text-xl font-bold text-gray-800" id="count_postponed">0</div>
+     </div>
+  </div>
+
+  <!-- SECTION 1: WAITING LIST -->
+  <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden mb-8">
+    <div class="bg-purple-50 px-6 py-3 border-b border-purple-100 flex justify-between items-center">
+      <h3 class="text-purple-800 font-bold text-lg"><i class="fa-solid fa-hourglass-half mr-2"></i>Surgery Waiting List</h3>
+      <span class="text-xs text-purple-600 font-medium bg-purple-100 px-2 py-1 rounded">Pending Approval</span>
+    </div>
+    <div class="p-0">
+      <table class="w-full text-sm text-left text-gray-500">
+        <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+          <tr>
+            <th class="py-3 px-6">MR No</th>
+            <th class="py-3 px-6">Patient Name</th>
+            <th class="py-3 px-6">Recommended Procedure</th>
+            <th class="py-3 px-6 text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody id="table_pending" class="divide-y divide-gray-100"></tbody>
+      </table>
+      <div id="empty_pending" class="hidden text-center py-6 text-gray-400 italic">No patients in waiting list.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: SCHEDULED SURGERIES -->
+  <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+    <div class="bg-blue-50 px-6 py-3 border-b border-blue-100 flex justify-between items-center">
+      <h3 class="text-blue-800 font-bold text-lg"><i class="fa-solid fa-calendar-check mr-2"></i>Scheduled Surgeries</h3>
+      <div class="flex gap-2">
+         <select id="filter_view" onchange="renderScheduledTable()" class="text-xs border-gray-300 rounded shadow-sm">
+            <option value="Scheduled">Upcoming</option>
+            <option value="Completed">Completed History</option>
+            <option value="Postponed">Postponed</option>
+         </select>
+      </div>
+    </div>
+    <div class="p-4">
+      <table id="surgeryTable" class="display w-full text-sm text-left text-gray-500" style="width:100%">
+        <thead class="bg-gray-50 text-gray-700 uppercase text-xs font-bold tracking-wider">
+          <tr>
+            <th class="py-3 px-4">Date / Time</th>
+            <th class="py-3 px-4">MR No</th>
+            <th class="py-3 px-4">Patient</th>
+            <th class="py-3 px-4">Procedure</th>
+            <th class="py-3 px-4">Surgeon</th>
+            <th class="py-3 px-4">Status</th>
+            <th class="py-3 px-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 1: REQUEST SURGERY -->
+<div id="request_modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-1/2 overflow-hidden animate-fade-in-down">
+    <div class="bg-purple-700 px-6 py-4 flex justify-between items-center">
+      <h3 class="text-lg font-bold text-white">Request Surgery</h3>
+      <button onclick="$('#request_modal').addClass('hidden')" class="text-white hover:text-purple-200"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <div class="p-6">
+      <form id="form_request" onsubmit="handleRequestSubmit(event)">
+         <input type="hidden" name="Surgery_ID" id="req_sid">
+         <input type="hidden" name="Status" value="Pending">
+         <input type="hidden" name="Patient_ID" id="req_pid">
+         <input type="hidden" name="MR_Number" id="req_mr">
+         <input type="hidden" name="Patient_Name" id="req_name">
+         <div class="mb-4">
+            <label class="block text-sm font-bold text-gray-700 mb-1">Select Patient</label>
+            <select id="req_patient_select" required onchange="onRequestPatientSelect()" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-purple-500"><option value="">Loading...</option></select>
+         </div>
+         <div class="mb-4">
+            <label class="block text-sm font-bold text-gray-700 mb-1">Recommended Procedure</label>
+            <input type="text" name="Procedure" required placeholder="e.g. Tendon Transfer" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-purple-500">
+         </div>
+         <div class="flex justify-end gap-2 mt-6">
+            <button type="button" onclick="$('#request_modal').addClass('hidden')" class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 font-bold">Add to Waiting List</button>
+         </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 2: SCHEDULE SURGERY (With Clinical History) -->
+<div id="schedule_modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-2/3 overflow-hidden animate-fade-in-down flex flex-col max-h-[90vh]">
+    <div class="bg-blue-700 px-6 py-4 flex justify-between items-center shrink-0">
+      <h3 class="text-lg font-bold text-white">Schedule Surgery</h3>
+      <button onclick="$('#schedule_modal').addClass('hidden')" class="text-white hover:text-blue-200"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+
+    <div class="p-6 overflow-y-auto custom-scrollbar">
+
+      <!-- PATIENT SUMMARY & CLINICAL HISTORY -->
+      <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+         <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+            <h4 class="text-blue-800 font-bold text-sm uppercase mb-2">Booking Details</h4>
+            <p class="text-sm"><strong>Patient:</strong> <span id="sch_p_name">...</span></p>
+            <p class="text-sm"><strong>Procedure:</strong> <span id="sch_proc">...</span></p>
+            <p class="text-sm"><strong>MR:</strong> <span id="sch_mr_display">...</span></p>
+         </div>
+         <div class="bg-gray-50 p-4 rounded-lg border border-gray-100 h-32 overflow-y-auto custom-scrollbar">
+            <h4 class="text-gray-600 font-bold text-xs uppercase mb-2 sticky top-0 bg-gray-50">Recent Clinical History</h4>
+            <div id="sch_clinical_history" class="text-xs space-y-2">
+               <div class="text-center text-gray-400 italic">Loading history...</div>
+            </div>
+         </div>
+      </div>
+
+      <form id="form_schedule" onsubmit="handleScheduleSubmit(event)">
+         <input type="hidden" name="_row" id="sch_row">
+         <input type="hidden" name="Surgery_ID" id="sch_sid">
+         <input type="hidden" name="Status" value="Scheduled">
+
+         <div class="grid grid-cols-2 gap-4 mb-4">
+            <div><label class="block text-sm font-bold text-gray-700 mb-1">Surgery Date</label><input type="date" name="Surgery_Date" id="sch_date" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500"></div>
+            <div><label class="block text-sm font-bold text-gray-700 mb-1">Surgery Time</label><input type="time" name="Surgery_Time" id="sch_time" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500"></div>
+         </div>
+         <div class="mb-4">
+            <label class="block text-sm font-bold text-gray-700 mb-1">Surgeon Name</label>
+            <input type="text" name="Surgeon" id="sch_surgeon" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500">
+         </div>
+         <div class="flex justify-end gap-2 mt-6">
+            <button type="button" onclick="$('#schedule_modal').addClass('hidden')" class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold">Confirm Schedule</button>
+         </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 3: SURGERY OUTCOME -->
+<div id="outcome_modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-2/3 overflow-hidden animate-fade-in-down max-h-[90vh] flex flex-col">
+    <div class="bg-green-700 px-6 py-4 flex justify-between items-center shrink-0">
+      <h3 class="text-lg font-bold text-white">Update Surgery Outcome</h3>
+      <button onclick="$('#outcome_modal').addClass('hidden')" class="text-white hover:text-green-200"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <div class="p-6 overflow-y-auto custom-scrollbar">
+      <form id="form_outcome" onsubmit="handleOutcomeSubmit(event)">
+         <input type="hidden" name="_row" id="out_row">
+         <input type="hidden" name="Patient_ID" id="out_pid">
+         <input type="hidden" name="Surgery_Date" id="out_date">
+         <input type="hidden" name="Surgeon" id="out_surgeon">
+         <input type="hidden" name="Procedure" id="out_proc">
+
+         <div class="mb-4">
+            <label class="block text-sm font-bold text-gray-700 mb-1">Outcome Status</label>
+            <select name="Status" id="out_status" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-green-500 font-bold">
+               <option value="Completed">Surgery Completed</option>
+               <option value="Postponed">Postponed / Cancelled</option>
+            </select>
+         </div>
+         <div class="mb-4">
+            <label class="block text-sm font-bold text-gray-700 mb-1">Surgery Notes / Post-op Reason</label>
+            <textarea name="Notes" required rows="3" placeholder="Describe surgery details or reason for postponement..." class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-green-500"></textarea>
+         </div>
+         <div class="grid grid-cols-2 gap-4 mb-4">
+             <div class="border-2 border-dashed border-gray-200 p-3 rounded text-center bg-gray-50">
+                <label class="block text-xs font-bold text-gray-500 mb-1">Before Surgery Img</label>
+                <input type="file" id="out_img_before" accept="image/*" class="text-xs w-full">
+                <input type="hidden" name="Before_Image" id="url_before">
+             </div>
+             <div class="border-2 border-dashed border-gray-200 p-3 rounded text-center bg-gray-50">
+                <label class="block text-xs font-bold text-gray-500 mb-1">After Surgery Img</label>
+                <input type="file" id="out_img_after" accept="image/*" class="text-xs w-full">
+                <input type="hidden" name="After_Image" id="url_after">
+             </div>
+         </div>
+         <div class="bg-yellow-50 p-3 rounded text-xs text-yellow-800 border border-yellow-200 mb-4"><i class="fa-solid fa-circle-info mr-1"></i> <strong>Note:</strong> Marking as "Completed" will automatically add a record to the Patient's Clinical History.</div>
+         <div class="flex justify-end gap-2">
+            <button type="button" onclick="$('#outcome_modal').addClass('hidden')" class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50">Cancel</button>
+            <button type="submit" id="btn_outcome_save" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-bold">Finalize Surgery</button>
+         </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .animate-fade-in-down { animation: fadeInDown 0.3s ease-out; }
+  .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  @keyframes fadeInDown { from { opacity: 0; transform: translate3d(0, -20px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+</style>
+
+<script>
+  let allSurgeries = [];
+  let patientList = [];
+
+  (function(){ setTimeout(()=>{ loadSurgeryData(); }, 200); })();
+
+  window.loadSurgeryData = function() {
+     if(typeof google === 'undefined') return;
+     $('#surgeryTable tbody').html('<tr><td colspan="7" class="text-center py-8 text-gray-500"><i class="fa-solid fa-circle-notch fa-spin text-teal-600 text-xl"></i> Loading...</td></tr>');
+     google.script.run.withSuccessHandler(pts => { patientList = pts; populateRequestDropdown(); }).getData('LIMB_CENTRE', 'Limb_Patients');
+     google.script.run.withSuccessHandler(data => { allSurgeries = data; updateDashboard(); }).getData('LIMB_CENTRE', 'Surgery_Log');
+  };
+
+  function updateDashboard() {
+      $('#count_pending').text(allSurgeries.filter(s => s.Status === 'Pending').length);
+      $('#count_scheduled').text(allSurgeries.filter(s => s.Status === 'Scheduled').length);
+      $('#count_done').text(allSurgeries.filter(s => s.Status === 'Completed').length);
+      $('#count_postponed').text(allSurgeries.filter(s => s.Status === 'Postponed').length);
+      renderPendingTable(); renderScheduledTable();
+  }
+
+  function renderPendingTable() {
+      const list = allSurgeries.filter(s => s.Status === 'Pending');
+      const tbody = $('#table_pending'); tbody.empty();
+      if(list.length === 0) { $('#empty_pending').removeClass('hidden'); return; }
+      $('#empty_pending').addClass('hidden');
+      list.forEach(row => {
+          tbody.append(`<tr class="hover:bg-purple-50 transition border-b border-gray-50"><td class="py-3 px-6 font-mono text-xs font-bold">${row.MR_Number}</td><td class="py-3 px-6 font-semibold text-gray-700">${row.Patient_Name}</td><td class="py-3 px-6">${row.Procedure}</td><td class="py-3 px-6 text-right"><button onclick="openScheduleModal(${row._row})" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded shadow"><i class="fa-regular fa-calendar-check mr-1"></i> Schedule</button></td></tr>`);
+      });
+  }
+
+  window.openRequestForm = function() { $('#form_request')[0].reset(); $('#req_sid').val("S-" + new Date().getTime()); $('#request_modal').removeClass('hidden'); };
+  function populateRequestDropdown() { const sel = $('#req_patient_select'); sel.empty().append('<option value="">-- Select Patient --</option>'); patientList.forEach(p => { sel.append(`<option value="${p.Patient_ID}" data-mr="${p.MR_Number}" data-name="${p.Full_Name}">[${p.MR_Number}] ${p.Full_Name}</option>`); }); }
+  window.onRequestPatientSelect = function() { const opt = $('#req_patient_select option:selected'); $('#req_pid').val(opt.val()); $('#req_mr').val(opt.data('mr')); $('#req_name').val(opt.data('name')); };
+  window.handleRequestSubmit = function(e) { e.preventDefault(); const fd = {}; $('#form_request').serializeArray().forEach(i => fd[i.name] = i.value); google.script.run.withSuccessHandler(() => { alert("Added to Waiting List!"); $('#request_modal').addClass('hidden'); loadSurgeryData(); }).addData('LIMB_CENTRE', 'Surgery_Log', fd); };
+
+  window.openScheduleModal = function(rowId) {
+      const rec = allSurgeries.find(r => r._row === rowId); if(!rec) return;
+      $('#sch_row').val(rec._row); $('#sch_sid').val(rec.Surgery_ID);
+      $('#sch_p_name').text(rec.Patient_Name); $('#sch_proc').text(rec.Procedure); $('#sch_mr_display').text(rec.MR_Number);
+      $('#sch_date').val(''); $('#sch_time').val(''); $('#sch_surgeon').val('');
+      $('#schedule_modal').removeClass('hidden');
+      // Load Clinical History
+      $('#sch_clinical_history').html('<div class="text-center text-gray-400 italic">Loading history...</div>');
+      google.script.run.withSuccessHandler(function(history) {
+         const pHist = history.filter(h => h.Patient_ID === rec.Patient_ID);
+         pHist.sort((a,b) => new Date(b.Date) - new Date(a.Date));
+         const container = $('#sch_clinical_history'); container.empty();
+         if(pHist.length === 0) container.html('<div class="text-gray-400 italic">No previous clinical records.</div>');
+         else {
+             pHist.slice(0, 5).forEach(h => {
+                 container.append(`<div class="border-b border-gray-100 pb-1 mb-1"><span class="font-bold text-teal-700">${h.Date}:</span> ${h.Diagnosis} - <span class="text-gray-600">${h.Treatment_Type}</span></div>`);
+             });
+         }
+      }).getData('LIMB_CENTRE', 'Clinical_Records');
+  };
+  window.handleScheduleSubmit = function(e) { e.preventDefault(); const fd = {}; $('#form_schedule').serializeArray().forEach(i => fd[i.name] = i.value); google.script.run.withSuccessHandler(() => { alert("Surgery Scheduled!"); $('#schedule_modal').addClass('hidden'); loadSurgeryData(); }).updateData('LIMB_CENTRE', 'Surgery_Log', fd._row, fd); };
+
+  window.renderScheduledTable = function() {
+      const filter = $('#filter_view').val();
+      let data = allSurgeries.filter(s => s.Status === filter);
+      data.sort((a,b) => new Date(a.Surgery_Date) - new Date(b.Surgery_Date));
+      if ($.fn.DataTable.isDataTable('#surgeryTable')) { $('#surgeryTable').DataTable().destroy(); }
+      $('#surgeryTable').DataTable({
+          data: data, destroy: true, scrollX: true, autoWidth: false, order: [[0, 'asc']],
+          columns: [
+             { data: null, render: r => `<div>${r.Surgery_Date || '-'}</div><div class="text-xs text-gray-400">${convertTo12Hour(r.Surgery_Time)}</div>` },
+             { data: 'MR_Number', className: "font-mono font-bold" }, { data: 'Patient_Name' }, { data: 'Procedure' }, { data: 'Surgeon' },
+             { data: 'Status', render: s => `<span class="px-2 py-1 rounded text-xs font-bold bg-gray-100 border">${s}</span>` },
+             { data: null, className: "text-right", render: function(data, type, row) {
+                  return row.Status === 'Scheduled' ? `<button onclick="openOutcomeModal(${row._row})" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded shadow"><i class="fa-solid fa-check mr-1"></i> Update</button>` : `<span class="text-xs text-gray-400 italic">Locked</span>`;
+             }}
+          ]
+      });
+  };
+
+  window.openOutcomeModal = function(rowId) {
+      const rec = allSurgeries.find(r => r._row === rowId); if(!rec) return;
+      $('#out_row').val(rec._row); $('#out_pid').val(rec.Patient_ID); $('#out_date').val(rec.Surgery_Date); $('#out_surgeon').val(rec.Surgeon); $('#out_proc').val(rec.Procedure);
+      $('#form_outcome')[0].reset(); $('#outcome_modal').removeClass('hidden');
+  };
+  window.handleOutcomeSubmit = function(e) {
+      e.preventDefault(); const btn = $('#btn_outcome_save'); btn.text('Processing...').prop('disabled',true);
+      const fd = {}; $('#form_outcome').serializeArray().forEach(i => fd[i.name] = i.value);
+      const fileBefore = document.getElementById('out_img_before').files[0], fileAfter = document.getElementById('out_img_after').files[0];
+      const queue = []; if(fileBefore) queue.push({file: fileBefore, key: 'Before_Image'}); if(fileAfter) queue.push({file: fileAfter, key: 'After_Image'});
+      const folderId = "1R7Brrb1gfQe_ihayIeC_STJw8GeSC29X";
+      const processQueue = (idx) => {
+          if(idx >= queue.length) { finishSave(fd, btn); return; }
+          const item = queue[idx]; btn.text('Uploading Images...');
+          const r = new FileReader(); r.onload = function(ev) { google.script.run.withSuccessHandler(url => { fd[item.key] = url; processQueue(idx+1); }).uploadFileToFolder(ev.target.result, `${fd.Procedure}_${idx}`, folderId); }; r.readAsDataURL(item.file);
+      };
+      processQueue(0);
+  };
+  function finishSave(fd, btn) {
+      btn.text('Saving & Syncing...');
+      google.script.run.withSuccessHandler(() => {
+          if(fd.Status === 'Completed') {
+              const clinicalRecord = { Visit_ID: "V-" + new Date().getTime(), Patient_ID: fd.Patient_ID, Date: fd.Surgery_Date, Doctor_Name: fd.Surgeon, Diagnosis: "Surgery Performed", Treatment_Type: fd.Procedure, Clinical_Notes: fd.Notes, Before_Image_URL: fd.Before_Image, After_Image_URL: fd.After_Image };
+              google.script.run.addData('LIMB_CENTRE', 'Clinical_Records', clinicalRecord);
+          }
+          alert("Surgery Finalized!"); $('#outcome_modal').addClass('hidden'); loadSurgeryData(); btn.text('Finalize Surgery').prop('disabled', false);
+      }).updateData('LIMB_CENTRE', 'Surgery_Log', fd._row, fd);
+  }
+  function convertTo12Hour(time) { if(!time) return ''; let [hours, mins] = time.split(':'); let h = parseInt(hours); let ampm = h >= 12 ? 'PM' : 'AM'; h = h % 12; h = h ? h : 12; return `${h}:${mins} ${ampm}`; }
+</script>

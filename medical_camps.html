@@ -1,0 +1,488 @@
+<!-- MODULE-SPECIFIC IMPORTS -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
+<div class="p-4">
+
+  <!-- HEADER -->
+  <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+    <div>
+      <h2 class="text-2xl font-bold text-teal-800">
+        Medical Camps <span class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">v2.5</span>
+      </h2>
+      <p class="text-gray-600 text-sm">Outreach Program Management</p>
+    </div>
+
+    <div class="flex flex-wrap gap-2 items-center">
+       <!-- DEBUG TOOLS -->
+       <button onclick="window.MC_loadData()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium py-2 px-4 rounded-lg shadow-sm border border-blue-200 transition">
+          <i class="fa-solid fa-arrows-rotate mr-1"></i> Refresh Data
+       </button>
+    </div>
+  </div>
+
+  <!-- NAVIGATION TABS -->
+  <div class="flex bg-gray-100 p-1 rounded-lg mb-6 overflow-x-auto">
+     <button onclick="window.switchCampTab('schedule')" id="tab_schedule" class="px-4 py-2 text-sm font-bold rounded-md transition bg-teal-700 text-white shadow-sm whitespace-nowrap"><i class="fa-solid fa-calendar-days mr-1"></i> Schedule</button>
+     <button onclick="window.switchCampTab('reception')" id="tab_reception" class="px-4 py-2 text-sm font-bold rounded-md transition text-gray-600 hover:bg-gray-200 whitespace-nowrap"><i class="fa-solid fa-clipboard-user mr-1"></i> Reception</button>
+     <button onclick="window.switchCampTab('doctor')" id="tab_doctor" class="px-4 py-2 text-sm font-bold rounded-md transition text-gray-600 hover:bg-gray-200 whitespace-nowrap"><i class="fa-solid fa-user-doctor mr-1"></i> Doctor Desk</button>
+     <button onclick="window.switchCampTab('reports')" id="tab_reports" class="px-4 py-2 text-sm font-bold rounded-md transition text-gray-600 hover:bg-gray-200 whitespace-nowrap"><i class="fa-solid fa-chart-line mr-1"></i> Reports</button>
+     <button onclick="window.switchCampTab('stock')" id="tab_stock" class="px-4 py-2 text-sm font-bold rounded-md transition text-gray-600 hover:bg-gray-200 whitespace-nowrap"><i class="fa-solid fa-kit-medical mr-1"></i> Stock</button>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div id="status-bar" class="hidden mb-4 px-4 py-2 bg-blue-50 text-blue-800 rounded border border-blue-100 text-xs font-mono">
+     Status: <span id="status-msg">Initializing...</span>
+  </div>
+
+  <!-- STATS -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500">
+        <div class="text-xs font-bold text-gray-400 uppercase">Total Camps</div>
+        <div class="text-2xl font-bold text-gray-800 mt-1" id="stat_camps">0</div>
+     </div>
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
+        <div class="text-xs font-bold text-gray-400 uppercase">Patients Treated</div>
+        <div class="text-2xl font-bold text-gray-800 mt-1" id="stat_patients">0</div>
+     </div>
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-teal-500">
+        <div class="text-xs font-bold text-gray-400 uppercase">Stock Items</div>
+        <div class="text-2xl font-bold text-gray-800 mt-1" id="stat_stock">0</div>
+     </div>
+  </div>
+
+  <!-- VIEW 1: CAMP SCHEDULE -->
+  <div id="view_schedule" class="tab-view animate-fade-in-down">
+     <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-teal-800">Upcoming Medical Camps</h3>
+            <button onclick="window.openCampModal()" class="bg-teal-600 text-white px-3 py-2 rounded text-sm hover:bg-teal-700 shadow-sm font-bold">
+                <i class="fa-solid fa-plus mr-1"></i> Plan New Camp
+            </button>
+        </div>
+        <div class="p-4">
+            <table id="tableSchedule" class="display w-full text-sm text-left text-gray-500">
+                <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+                    <tr><th>Camp ID</th><th>Location</th><th>Date</th><th>Sponsor</th><th>Status</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+     </div>
+  </div>
+
+  <!-- VIEW 2: RECEPTION -->
+  <div id="view_reception" class="tab-view hidden animate-fade-in-down">
+     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-1 bg-white rounded-xl shadow p-6 border-t-4 border-teal-600">
+            <h3 class="font-bold text-lg text-gray-800 mb-4">Patient Registration</h3>
+            <form id="form_patient" onsubmit="window.handlePatientSubmit(event)">
+                <input type="hidden" name="Patient_ID" id="new_patient_id">
+                <div class="mb-3">
+                   <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Select Camp</label>
+                   <select name="Camp_ID" id="reception_camp_select" onchange="window.onReceptionCampChange()" required class="w-full rounded border-gray-300 text-sm font-bold text-teal-700"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                   <div class="bg-gray-100 p-2 rounded text-center">
+                       <span class="block text-[10px] text-gray-400 font-bold uppercase">Token</span>
+                       <input type="text" name="Token_Number" id="token_display" readonly class="bg-transparent text-center font-mono text-lg font-bold text-gray-800 w-full border-none focus:ring-0 p-0">
+                   </div>
+                   <div>
+                       <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Assign Doctor</label>
+                       <select name="Doctor_Name" id="reception_doc_select" class="w-full rounded border-gray-300 text-xs"></select>
+                   </div>
+                </div>
+                <div class="mb-3">
+                   <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Patient Name</label>
+                   <input type="text" name="Patient_Name" required class="w-full rounded border-gray-300 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                   <div><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Age</label><input type="number" name="Age" class="w-full rounded border-gray-300 text-sm"></div>
+                   <div><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Gender</label><select name="Gender" class="w-full rounded border-gray-300 text-sm"><option>Male</option><option>Female</option><option>Child</option></select></div>
+                </div>
+                <button type="submit" id="btn_save_patient" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded shadow transition">Register & Print</button>
+            </form>
+        </div>
+        <div class="md:col-span-2 bg-white rounded-xl shadow overflow-hidden">
+            <div class="bg-gray-50 px-4 py-3 border-b font-bold text-gray-600">Today's Registrations</div>
+            <div class="p-0">
+                <table id="tableReception" class="display w-full text-sm text-left text-gray-500">
+                    <thead class="bg-gray-100 text-xs uppercase"><tr><th>Token</th><th>Name</th><th>Doctor</th><th>Status</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+     </div>
+  </div>
+
+  <!-- VIEW 3: DOCTOR DESK -->
+  <div id="view_doctor" class="tab-view hidden animate-fade-in-down">
+     <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-blue-50 px-6 py-4 border-b border-blue-100 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4 w-full md:w-auto">
+               <h3 class="text-lg font-bold text-blue-800 whitespace-nowrap">Doctor's Desk</h3>
+               <select id="doc_camp_filter" onchange="window.renderDoctorTable()" class="text-sm border-blue-200 rounded-lg shadow-sm w-full md:w-48"><option value="">-- Select Active Camp --</option></select>
+               <select id="doc_name_filter" onchange="window.renderDoctorTable()" class="text-sm border-blue-200 rounded-lg shadow-sm w-full md:w-48 font-bold text-blue-700"><option value="">-- Select Your Name --</option></select>
+            </div>
+            <button onclick="window.MC_loadData()" class="text-blue-600 hover:text-blue-800 text-sm whitespace-nowrap"><i class="fa-solid fa-sync"></i> Refresh List</button>
+        </div>
+        <div class="p-4">
+            <table id="tableDoctor" class="display w-full text-sm text-left text-gray-500">
+                <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+                    <tr><th>Token</th><th>Patient Name</th><th>Age/Gender</th><th>Assigned To</th><th>Status</th><th class="text-right">Consultation</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+     </div>
+  </div>
+
+  <!-- VIEW 4: REPORTS -->
+  <div id="view_reports" class="tab-view hidden animate-fade-in-down">
+      <div class="grid grid-cols-1 gap-6">
+          <div class="bg-white rounded-xl shadow p-6 border-l-4 border-purple-500">
+              <h3 class="text-lg font-bold text-gray-800 mb-4">Camp Summary Report</h3>
+              <div class="flex gap-4 mb-4">
+                  <select id="report_camp_select" class="border-gray-300 rounded shadow-sm text-sm"><option value="">Select Camp</option></select>
+                  <button onclick="window.generateSummary()" class="bg-purple-600 text-white px-4 py-2 rounded text-sm font-bold shadow hover:bg-purple-700">Generate & Print Summary</button>
+              </div>
+          </div>
+          <div class="bg-white rounded-xl shadow overflow-hidden">
+              <div class="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
+                  <h3 class="font-bold text-gray-700">Detailed Patient Report</h3>
+                  <button onclick="window.printCustomTable('tableReports', 'Detailed Patient Report')" class="bg-gray-700 text-white px-3 py-1 rounded text-xs font-bold hover:bg-gray-800"><i class="fa-solid fa-print"></i> Print List</button>
+              </div>
+              <div class="p-4">
+                  <table id="tableReports" class="display w-full text-sm text-left text-gray-500">
+                      <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+                          <tr><th>Camp</th><th>Token</th><th>Name</th><th>Diagnosis</th><th>Referral</th><th>Doctor</th></tr>
+                      </thead>
+                      <tbody></tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <!-- VIEW 5: STOCK -->
+  <div id="view_stock" class="tab-view hidden animate-fade-in-down">
+     <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-teal-800">Camp Medicine Log</h3>
+            <button onclick="window.openStockModal()" class="bg-purple-600 text-white px-3 py-2 rounded text-sm hover:bg-purple-700 shadow-sm font-bold"><i class="fa-solid fa-boxes-packing mr-1"></i> Log Stock</button>
+        </div>
+        <div class="p-4">
+            <table id="tableStock" class="display w-full text-sm text-left text-gray-500">
+                <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+                    <tr><th>Log ID</th><th>Camp</th><th>Medicine</th><th class="text-right">Consumed</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+     </div>
+  </div>
+
+</div>
+
+<!-- CONSULTATION MODAL -->
+<div id="consult_modal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-3/4 overflow-hidden animate-fade-in-down flex flex-col max-h-[90vh]">
+    <div class="bg-blue-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
+      <div><h3 class="font-bold text-lg">Patient Consultation</h3><p class="text-xs text-blue-100">Token: <span id="consult_token" class="font-mono font-bold">...</span> | <span id="consult_name">...</span></p></div>
+      <button onclick="$('#consult_modal').addClass('hidden')"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <div class="flex flex-col md:flex-row flex-grow overflow-hidden">
+        <div class="w-full md:w-1/3 bg-gray-50 border-r border-gray-200 p-4 overflow-y-auto custom-scrollbar">
+            <h4 class="font-bold text-gray-700 mb-3 text-sm uppercase">Available Medicines</h4>
+            <div id="medicine_list_container" class="space-y-2"><div class="text-center text-gray-400 text-xs italic">Loading stock...</div></div>
+        </div>
+        <div class="w-full md:w-2/3 p-6 overflow-y-auto custom-scrollbar">
+          <form id="form_consult" onsubmit="window.handleConsultSubmit(event)">
+            <input type="hidden" name="_row" id="consult_row"><input type="hidden" name="Patient_ID" id="consult_pid"><input type="hidden" name="Camp_ID" id="consult_camp_id"><input type="hidden" name="Patient_Name" id="consult_pname_hidden"><input type="hidden" name="Token_Number" id="consult_token_hidden">
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="col-span-2"><label class="block text-sm font-bold text-gray-700 mb-1">Diagnose / Disease</label><input type="text" name="Disease_Category" id="consult_disease" class="w-full rounded border-gray-300 shadow-sm focus:ring-blue-500"></div>
+                <div class="col-span-2"><label class="block text-sm font-bold text-gray-700 mb-1">Medicine / Treatment</label><textarea name="Medicine_Given" id="consult_med" rows="3" class="w-full rounded border-gray-300 shadow-sm focus:ring-blue-500 bg-blue-50" placeholder="Click medicines on left to add..."></textarea></div>
+                <div class="col-span-2"><label class="block text-sm font-bold text-gray-700 mb-1">Notes</label><textarea name="Treatment_Notes" id="consult_notes" rows="1" class="w-full rounded border-gray-300 shadow-sm focus:ring-blue-500"></textarea></div>
+                <div><label class="block text-sm font-bold text-gray-700 mb-1">Doctor Name</label><input type="text" name="Doctor_Name" id="consult_doc" readonly class="w-full rounded border-gray-300 shadow-sm bg-gray-100 cursor-not-allowed"></div>
+                <div><label class="block text-sm font-bold text-gray-700 mb-1">Referral</label><select name="Referral" id="consult_refer" class="w-full rounded border-gray-300 shadow-sm font-bold text-red-600"><option value="">-- No Referral --</option><option value="Clubfoot Centre">Clubfoot Centre</option><option value="Bashir Hospital">Bashir Hospital</option><option value="Ayesha Bashir Hospital">Ayesha Bashir Hospital</option></select></div>
+            </div>
+            <div class="flex justify-end gap-2 border-t pt-4"><button type="button" onclick="$('#consult_modal').addClass('hidden')" class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50">Cancel</button><button type="submit" id="btn_save_consult" class="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 shadow">Complete</button></div>
+          </form>
+        </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CAMP PLAN -->
+<div id="camp_modal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-1/3 overflow-hidden animate-fade-in-down max-h-screen overflow-y-auto">
+    <div class="bg-teal-700 px-6 py-4 flex justify-between items-center text-white sticky top-0 z-10">
+      <h3 class="font-bold text-lg">Plan Medical Camp</h3>
+      <button onclick="$('#camp_modal').addClass('hidden')"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <div class="p-6">
+      <form id="form_camp" onsubmit="window.handleCampSubmit(event)">
+        <input type="hidden" name="Camp_ID" id="new_camp_id"><input type="hidden" name="Status" value="Scheduled">
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Camp Sponsored By</label><input type="text" name="Sponsor" class="w-full rounded border-gray-300 shadow-sm"></div>
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Camp Location</label><input type="text" name="Camp_Location" required class="w-full rounded border-gray-300 shadow-sm"></div>
+        <div class="grid grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold text-gray-700 mb-1">Region</label><input type="text" name="Region" class="w-full rounded border-gray-300 shadow-sm"></div><div><label class="block text-sm font-bold text-gray-700 mb-1">Date</label><input type="date" name="Date" required class="w-full rounded border-gray-300 shadow-sm"></div></div>
+        <div class="mb-4 border-t pt-4"><div class="flex justify-between items-center mb-2"><label class="block text-sm font-bold text-teal-800">Medical Team</label><button type="button" onclick="window.addDoctorRow()" class="text-xs bg-teal-100 text-teal-700 px-2 py-1 rounded font-bold"><i class="fa-solid fa-plus mr-1"></i> Add</button></div><div id="medical_team_container" class="space-y-2"></div></div>
+        <button type="submit" id="btn_save_camp" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded shadow-lg mt-2">Schedule Camp</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: STOCK -->
+<div id="stock_modal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-1/3 overflow-hidden animate-fade-in-down">
+    <div class="bg-purple-600 px-6 py-4 flex justify-between items-center text-white">
+      <h3 class="font-bold text-lg">Log Camp Inventory</h3>
+      <button onclick="$('#stock_modal').addClass('hidden')"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <div class="p-6">
+      <form id="form_stock" onsubmit="window.handleStockSubmit(event)">
+        <input type="hidden" name="Log_ID" id="new_log_id"><input type="hidden" name="Qty_Consumed" id="calc_consumed">
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Select Camp</label><select name="Camp_ID" id="stock_camp_select" required class="w-full rounded border-gray-300 shadow-sm font-bold text-teal-700"></select></div>
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Medicine Name</label><input type="text" name="Medicine_Name" required class="w-full rounded border-gray-300 shadow-sm"></div>
+        <div class="grid grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold text-gray-700 mb-1">Qty Taken</label><input type="number" name="Qty_Taken" id="qty_taken" oninput="window.calcStock()" value="0" class="w-full rounded border-gray-300 shadow-sm font-mono"></div><div><label class="block text-sm font-bold text-gray-700 mb-1">Qty Returned</label><input type="number" name="Qty_Returned" id="qty_returned" oninput="window.calcStock()" value="0" class="w-full rounded border-gray-300 shadow-sm font-mono"></div></div>
+        <div class="mb-6 p-3 bg-gray-100 rounded text-center"><span class="text-xs text-gray-500 uppercase font-bold">Total Consumed</span><div class="text-2xl font-bold text-purple-700" id="display_consumed">0</div></div>
+        <button type="submit" id="btn_save_stock" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded shadow-lg">Save Log</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .animate-fade-in-down { animation: fadeInDown 0.3s ease-out; }
+  @keyframes fadeInDown { from { opacity: 0; transform: translate3d(0, -20px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+  .tab-btn-active { background-color: #0f766e !important; color: white !important; }
+  .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+  @media print {
+      body * { visibility: hidden; }
+      #summary_result, #summary_result * { visibility: visible; }
+      #summary_result { position: absolute; left: 0; top: 0; width: 100%; border: none; }
+  }
+</style>
+
+<script>
+// SAFETY CONTAINER
+(function() {
+  let schedule = [];
+  let patients = [];
+  let stock = [];
+  const LS_CAMP = 'dws_camp_id';
+  const LS_DOC = 'dws_doc_name';
+  const LS_TIME = 'dws_login_time';
+
+  // --- INITIALIZATION ---
+  setTimeout(() => {
+     if(typeof google !== 'undefined') {
+         window.MC_loadData();
+     }
+     if(typeof window.CAMP_TAB !== 'undefined' && window.CAMP_TAB) {
+         window.switchCampTab(window.CAMP_TAB);
+     } else {
+         window.switchCampTab('schedule');
+     }
+  }, 200);
+
+  // --- GLOBAL FUNCTIONS (ATTACHED TO WINDOW) ---
+
+  window.MC_loadData = function() {
+      const SHEET_KEY = 'CAMPS';
+      $('#status-bar').removeClass('hidden').html('Status: Fetching...');
+      $('#status-badge').removeClass('hidden').text('Fetching...').addClass('bg-yellow-100 text-yellow-800');
+
+      google.script.run.withSuccessHandler(data => { schedule = data; $('#stat_camps').text(schedule.length); window.renderScheduleTable(); window.populateDropdowns(); }).withFailureHandler(err => handleError('Schedule', err)).getData(SHEET_KEY, 'Camp_Schedule');
+      google.script.run.withSuccessHandler(data => { patients = data; $('#stat_patients').text(patients.length); window.renderPatientTable(); window.renderDoctorTable(); window.renderReportsTable(); }).withFailureHandler(err => handleError('Patients', err)).getData(SHEET_KEY, 'Camp_Patients');
+      google.script.run.withSuccessHandler(data => { stock = data; $('#stat_stock').text(stock.length); window.renderStockTable(); $('#status-bar').html('Status: Ready'); $('#status-badge').text('Ready').removeClass('bg-yellow-100 text-yellow-800').addClass('bg-green-100 text-green-800'); }).withFailureHandler(err => handleError('Stock', err)).getData(SHEET_KEY, 'Camp_Stock_Log');
+  };
+
+  function handleError(module, err) {
+      console.error(module, err);
+      $('#error-alert').removeClass('hidden');
+      $('#error-msg').text(`Error loading ${module}: ${err.message}`);
+      $('#status-bar').html(`Status: Error in ${module}`);
+  }
+
+  window.switchCampTab = function(tabId) {
+     $('.tab-view').addClass('hidden'); $('#view_' + tabId).removeClass('hidden');
+     $('[id^="tab_"]').removeClass('tab-btn-active bg-teal-700 text-white').addClass('text-gray-600 hover:bg-gray-200');
+     $('#tab_' + tabId).addClass('tab-btn-active');
+     setTimeout(() => { $.fn.DataTable.tables({ visible: true, api: true }).columns.adjust().draw(); }, 100);
+  };
+
+  window.populateDropdowns = function() {
+     const now = Date.now();
+     const storedTime = localStorage.getItem(LS_TIME);
+     let storedCamp = '';
+     if (storedTime && (now - parseInt(storedTime) < 24 * 60 * 60 * 1000)) { storedCamp = localStorage.getItem(LS_CAMP) || ''; }
+
+     const opts = '<option value="">-- Select Camp --</option>' + schedule.map(c => `<option value="${c.Camp_ID}">${c.Camp_Location} (${c.Date})</option>`).join('');
+     $('#reception_camp_select').html(opts);
+     $('#doc_camp_filter').html(opts);
+     $('#report_camp_select').html(opts);
+     $('#stock_camp_select').html(opts);
+
+     if (storedCamp) {
+         $('#reception_camp_select').val(storedCamp).trigger('change');
+         $('#doc_camp_filter').val(storedCamp).trigger('change');
+     }
+  };
+
+  // --- RECEPTION LOGIC ---
+  window.onReceptionCampChange = function() {
+      const campId = $('#reception_camp_select').val();
+      if (!campId) return;
+      localStorage.setItem(LS_CAMP, campId); localStorage.setItem(LS_TIME, Date.now());
+      window.generateToken();
+      window.populateReceptionDoctors(campId);
+  };
+  window.populateReceptionDoctors = function(campId) {
+      const camp = schedule.find(c => c.Camp_ID === campId);
+      const $docSel = $('#reception_doc_select'); $docSel.empty();
+      if (camp && camp.Lead_Doctor) {
+          camp.Lead_Doctor.split(',').forEach(d => {
+             const parts = d.split(':');
+             if(parts.length > 1) { $docSel.append(`<option value="${parts[1].trim()}">${parts[1].trim()} (${parts[0].trim()})</option>`); }
+             else { $docSel.append(`<option value="${d.trim()}">${d.trim()}</option>`); }
+          });
+      } else { $docSel.append('<option value="General Doctor">General Doctor</option>'); }
+  };
+  window.generateToken = function() {
+     const campId = $('#reception_camp_select').val(); if(!campId) { $('#token_display').val(''); return; }
+     const count = patients.filter(p => p.Camp_ID === campId).length + 1;
+     const seq = String(count).padStart(3, '0');
+     const shortId = campId.split('-')[1]; $('#token_display').val(`C${shortId}-${seq}`);
+  };
+  window.handlePatientSubmit = function(e) {
+      e.preventDefault(); const btn = $('#btn_save_patient'); btn.text('Registering...').prop('disabled', true);
+      const fd = {}; $('#form_patient').serializeArray().forEach(i => fd[i.name] = i.value); fd.Patient_ID = "PAT-" + Date.now();
+      google.script.run.withSuccessHandler(() => {
+          alert("Patient Registered! Token: " + fd.Token_Number);
+          $('#form_patient')[0].reset();
+          const savedCamp = localStorage.getItem(LS_CAMP); if(savedCamp) { $('#reception_camp_select').val(savedCamp); window.generateToken(); }
+          window.MC_loadData(); btn.text('Register & Print Token').prop('disabled', false);
+      }).withFailureHandler(err => { alert("Save Error: " + err); btn.prop('disabled', false); }).addData('CAMPS', 'Camp_Patients', fd);
+  };
+
+  // --- DOCTOR LOGIC ---
+  window.renderDoctorTable = function() {
+      const campId = $('#doc_camp_filter').val();
+      const docName = $('#doc_name_filter').val();
+      if(campId) localStorage.setItem(LS_CAMP, campId); if(docName) localStorage.setItem(LS_DOC, docName);
+
+      let data = patients.filter(p => p.Camp_ID === campId);
+      if (docName) { data = data.filter(p => p.Doctor_Name === docName || !p.Doctor_Name); }
+
+      if (campId) {
+          const camp = schedule.find(c => c.Camp_ID === campId);
+          const $docSel = $('#doc_name_filter');
+          if ($docSel.children().length <= 1 && camp && camp.Lead_Doctor) {
+              $docSel.empty().append('<option value="">-- Select Your Name --</option>');
+              camp.Lead_Doctor.split(',').forEach(d => { $docSel.append(`<option value="${d.includes(':') ? d.split(':')[1].trim() : d.trim()}">${d.includes(':') ? d.split(':')[1].trim() : d.trim()}</option>`); });
+              const savedDoc = localStorage.getItem(LS_DOC); if(savedDoc) $docSel.val(savedDoc);
+          }
+      }
+
+      if ($.fn.DataTable.isDataTable('#tableDoctor')) { $('#tableDoctor').DataTable().destroy(); }
+      $('#tableDoctor').DataTable({
+          data: data, destroy: true, autoWidth: false,
+          columns: [
+             { data: 'Token_Number', className: "font-mono font-bold text-blue-700" },
+             { data: 'Patient_Name' },
+             { data: null, render: r => `${r.Age}/${r.Gender}` },
+             { data: 'Doctor_Name', defaultContent: '<span class="text-gray-400 text-xs">Unassigned</span>' },
+             { data: null, render: r => r.Disease_Category ? '<span class="text-green-600 font-bold text-xs">Checked</span>' : '<span class="text-yellow-600 font-bold text-xs">Waiting</span>' },
+             { data: null, className: "text-right", render: (d,t,r) => `<button onclick="window.openConsultModal('${r.Patient_ID}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700">Consult</button>` }
+          ]
+      });
+  };
+  window.openConsultModal = function(pid) {
+      const p = patients.find(x => x.Patient_ID === pid); if(!p) return;
+      $('#consult_pid').val(p.Patient_ID); $('#consult_row').val(p._row); $('#consult_camp_id').val(p.Camp_ID); $('#consult_pname_hidden').val(p.Patient_Name); $('#consult_token_hidden').val(p.Token_Number);
+      $('#consult_token').text(p.Token_Number); $('#consult_name').text(p.Patient_Name); $('#consult_doc').val($('#doc_name_filter').val() || p.Doctor_Name || '');
+      const campStock = stock.filter(s => s.Camp_ID === p.Camp_ID);
+      const $medList = $('#medicine_list_container'); $medList.empty();
+      if(campStock.length === 0) { $medList.html('<div class="text-xs text-gray-400 italic">No stock info available.</div>'); }
+      else { campStock.forEach(s => { $medList.append(`<div class="bg-white border border-gray-200 p-2 rounded text-xs cursor-pointer hover:bg-blue-50 transition" onclick="window.addMedicine('${s.Medicine_Name}')"><div class="font-bold text-gray-700">${s.Medicine_Name}</div><div class="text-gray-400">Total: ${s.Qty_Taken}</div></div>`); }); }
+      $('#consult_disease').val(p.Disease_Category || ''); $('#consult_med').val(p.Medicine_Given || ''); $('#consult_notes').val(p.Treatment_Notes || ''); $('#consult_refer').val(p.Referral || '');
+      $('#consult_modal').removeClass('hidden');
+  };
+  window.addMedicine = function(medName) { const $area = $('#consult_med'); $area.val($area.val() ? $area.val() + ", " + medName : medName); };
+  window.handleConsultSubmit = function(e) { e.preventDefault(); const btn = $('#btn_save_consult'); btn.text('Saving...').prop('disabled', true); const fd = {}; $('#form_consult').serializeArray().forEach(i => fd[i.name] = i.value); google.script.run.withSuccessHandler(() => { alert("Consultation Saved!"); $('#consult_modal').addClass('hidden'); window.MC_loadData(); btn.text('Complete Consultation').prop('disabled', false); }).updateData('CAMPS', 'Camp_Patients', fd._row, fd); };
+
+  // --- REPORTING ---
+  window.generateSummary = function() {
+      const campId = $('#report_camp_select').val(); if(!campId) return;
+      const camp = schedule.find(c => c.Camp_ID === campId);
+      const campPatients = patients.filter(p => p.Camp_ID === campId);
+
+      const depts = {}; const docs = {};
+      campPatients.forEach(p => { depts[p.Disease_Category || 'General Checkup'] = (depts[p.Disease_Category || 'General Checkup'] || 0) + 1; const doc = p.Doctor_Name || 'Unassigned'; docs[doc] = (docs[doc] || 0) + 1; });
+      let deptHtml = ''; for (const [key, value] of Object.entries(depts)) deptHtml += `<li>${key}: <strong>${value}</strong></li>`;
+      let docHtml = ''; for (const [key, value] of Object.entries(docs)) docHtml += `<li>${key}: <strong>${value} Patients</strong></li>`;
+
+      const html = `<div class="p-6 bg-white border border-gray-300 shadow-sm">
+         <h4 class="font-bold text-xl mb-4 text-center border-b pb-2 uppercase">${camp.Camp_Location} Summary Report</h4>
+         <div class="grid grid-cols-2 gap-6 text-sm mb-6">
+             <div class="bg-gray-50 p-3 rounded"><span class="block text-xs text-gray-500 uppercase">Date</span><b class="text-lg">${camp.Date}</b></div>
+             <div class="bg-gray-50 p-3 rounded"><span class="block text-xs text-gray-500 uppercase">Sponsor</span><b class="text-lg">${camp.Sponsor || '-'}</b></div>
+             <div class="col-span-2 bg-gray-50 p-3 rounded"><span class="block text-xs text-gray-500 uppercase">Total Patients Examined</span><b class="text-2xl text-teal-700">${campPatients.length}</b></div>
+         </div>
+         <div class="grid grid-cols-2 gap-6 text-sm">
+             <div><span class="font-bold text-gray-600 block mb-2 border-b">Diagnosis Breakdown</span><ul class="list-disc pl-5 space-y-1 text-gray-700">${deptHtml}</ul></div>
+             <div><span class="font-bold text-gray-600 block mb-2 border-b">Doctor Performance</span><ul class="list-disc pl-5 space-y-1 text-gray-700">${docHtml}</ul></div>
+         </div></div>
+         <div class="text-center mt-4 no-print"><button onclick="window.print()" class="bg-purple-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-purple-700"><i class="fa-solid fa-print"></i> Print Summary</button></div>
+      `;
+      const win = window.open('', 'Summary', 'width=800,height=600');
+      win.document.write('<html><head><title>Summary Report</title><script src="https://cdn.tailwindcss.com"><\/script></head><body>' + html + '</body></html>');
+      win.document.close();
+  };
+
+  window.renderReportsTable = function() {
+      if ($.fn.DataTable.isDataTable('#tableReports')) { $('#tableReports').DataTable().destroy(); }
+      $('#tableReports').DataTable({
+          data: patients, destroy: true, autoWidth: false,
+          dom: 'Bfrtip', // This code enables the buttons
+          buttons: [
+             // CUSTOM PRINT BUTTON CONFIG
+             {
+                 extend: 'print',
+                 text: '<i class="fa-solid fa-print"></i> Print Detailed List',
+                 className: 'bg-gray-700 text-white px-3 py-1 rounded text-xs font-bold',
+                 title: 'Medical Camp Detailed Report',
+                 customize: function(win) {
+                    $(win.document.body).prepend('<h4 style="text-align:center; margin-bottom:10px;">DWS Medical Camps Report</h4>');
+                 }
+             }
+          ],
+          columns: [ { data: 'Camp_ID', render: (d) => { const c = schedule.find(x => x.Camp_ID === d); return c ? c.Camp_Location : d; } }, { data: 'Token_Number', className: "font-mono" }, { data: 'Patient_Name' }, { data: 'Disease_Category' }, { data: 'Referral', render: r => r ? `<span class="text-red-600 font-bold">${r}</span>` : '-' }, { data: 'Doctor_Name' } ]
+      });
+  };
+
+  // Custom trigger for the print button
+  window.printReportTable = function() {
+      if (!$.fn.DataTable.isDataTable('#tableReports')) { alert('No data loaded to print.'); return; }
+      $('#tableReports').DataTable().button(0).trigger();
+  };
+
+  // --- ACTIONS ---
+  window.openCampModal = function() { $('#form_camp')[0].reset(); $('#new_camp_id').val("CAMP-"+Date.now()); $('#medical_team_container').html(`<div class="flex gap-2 items-center doctor-row"><input type="text" placeholder="Dept" class="dept-input w-1/3 text-xs rounded border-gray-300"><input type="text" placeholder="Doctor" class="doc-name w-full text-xs rounded border-gray-300"></div>`); $('#camp_modal').removeClass('hidden'); };
+  window.addDoctorRow = function() { $('#medical_team_container').append(`<div class="flex gap-2 items-center doctor-row mt-2"><input type="text" placeholder="Dept" class="dept-input w-1/3 text-xs rounded border-gray-300"><input type="text" placeholder="Doctor" class="doc-name w-full text-xs rounded border-gray-300"><button type="button" onclick="$(this).parent().remove()" class="text-red-500"><i class="fa-solid fa-trash"></i></button></div>`); };
+  window.handleCampSubmit = function(e) { e.preventDefault(); const btn=$('#btn_save_camp'); btn.text('Scheduling...').prop('disabled',true); const fd={}; $('#form_camp').serializeArray().forEach(i=>fd[i.name]=i.value); let t=[]; $('.doctor-row').each(function(){ const d=$(this).find('.dept-input').val(), n=$(this).find('.doc-name').val(); if(n)t.push(`${d}: ${n}`); }); fd.Lead_Doctor=t.join(', '); google.script.run.withSuccessHandler(()=>{ alert("Camp Scheduled!"); $('#camp_modal').addClass('hidden'); window.MC_loadData(); btn.text('Schedule').prop('disabled',false); }).withFailureHandler(err => alert("Error: "+err)).addData('CAMPS','Camp_Schedule',fd); };
+  window.openStockModal = function() { $('#form_stock')[0].reset(); $('#new_log_id').val("LOG-" + Date.now()); $('#qty_taken').val(0); $('#qty_returned').val(0); $('#display_consumed').text(0); const $sel = $('#stock_camp_select'); $sel.empty(); schedule.forEach(c => { $sel.append(`<option value="${c.Camp_ID}">${c.Camp_Location} (${c.Date})</option>`); }); $('#stock_modal').removeClass('hidden'); };
+  window.calcStock = function() { const t = parseInt($('#qty_taken').val())||0, r = parseInt($('#qty_returned').val())||0; $('#display_consumed').text(t-r); $('#calc_consumed').val(t-r); };
+  window.handleStockSubmit = function(e) { e.preventDefault(); const btn = $('#btn_save_stock'); btn.text('Saving...').prop('disabled',true); const fd={}; $('#form_stock').serializeArray().forEach(i=>fd[i.name]=i.value); google.script.run.withSuccessHandler(()=>{ alert("Stock Saved!"); $('#stock_modal').addClass('hidden'); window.MC_loadData(); btn.text('Save Log').prop('disabled',false); }).addData('CAMPS', 'Camp_Stock_Log', fd); };
+
+  // RENDERING
+  window.renderScheduleTable = function() { if ($.fn.DataTable.isDataTable('#tableSchedule')) { $('#tableSchedule').DataTable().destroy(); } $('#tableSchedule').DataTable({ data: schedule, destroy: true, autoWidth: false, order: [[3, 'desc']], columns: [ { data: 'Camp_ID', className: "font-mono font-bold" }, { data: 'Camp_Location' }, { data: 'Region' }, { data: 'Date', render: (d) => d ? new Date(d).toLocaleDateString() : '-' }, { data: 'Sponsor', defaultContent: '-' }, { data: 'Lead_Doctor', render: (d) => `<span class="text-xs">${d || '-'}</span>` }, { data: 'Status', render: (s) => `<span class="px-2 py-1 rounded text-xs font-bold ${s==='Completed'?'bg-green-100 text-green-800':'bg-yellow-100 text-yellow-800'}">${s||'Scheduled'}</span>` } ] }); }
+  window.renderPatientTable = function() { if ($.fn.DataTable.isDataTable('#tablePatients')) { $('#tablePatients').DataTable().destroy(); } $('#tablePatients').DataTable({ data: patients, destroy: true, autoWidth: false, columns: [ { data: 'Patient_ID', className: "font-mono text-xs" }, { data: 'Camp_ID', className: "font-mono text-xs font-bold text-teal-600" }, { data: 'Patient_Name' }, { data: null, render: (d,t,r) => `${r.Age} / ${r.Gender}` }, { data: 'Disease_Category' }, { data: 'Medicine_Given' } ] }); }
+  window.renderStockTable = function() { if ($.fn.DataTable.isDataTable('#tableStock')) { $('#tableStock').DataTable().destroy(); } $('#tableStock').DataTable({ data: stock, destroy: true, autoWidth: false, columns: [ { data: 'Log_ID', className: "font-mono text-xs" }, { data: 'Camp_ID', className: "font-mono text-xs font-bold text-teal-600" }, { data: 'Medicine_Name', className: "font-bold" }, { data: 'Qty_Consumed', className: "text-right" } ] }); }
+})();
+</script>

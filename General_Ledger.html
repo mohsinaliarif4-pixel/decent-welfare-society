@@ -1,0 +1,245 @@
+<!-- MODULE-SPECIFIC IMPORTS -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
+
+<div class="p-4 no-print">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold text-teal-800">General Ledger</h2>
+    <div class="flex gap-2">
+       <button onclick="window.openTransModal('Income')" class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 font-bold"><i class="fa-solid fa-plus mr-1"></i> Credit (Income)</button>
+       <button onclick="window.openTransModal('Expense')" class="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 font-bold"><i class="fa-solid fa-minus mr-1"></i> Debit (Expense)</button>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden p-4">
+       <div class="overflow-x-auto">
+           <table id="tableTransactions" class="display w-full text-sm text-left text-gray-500">
+               <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+                   <tr>
+                       <th class="w-1/6">Date & Ref</th>
+                       <th class="w-1/3">Particulars</th>
+                       <th class="w-1/6 text-right">Amount</th>
+                       <th class="w-1/6 text-center">Status</th>
+                       <th class="w-1/6 text-right">Actions</th>
+                   </tr>
+               </thead>
+               <tbody></tbody>
+           </table>
+       </div>
+  </div>
+</div>
+
+<!-- VOUCHER MODAL -->
+<div id="trans_modal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-1/3 overflow-hidden animate-fade-in-down">
+    <div id="trans_header" class="bg-teal-700 px-6 py-4 flex justify-between items-center text-white">
+      <h3 class="font-bold text-lg" id="trans_title">Journal Voucher</h3>
+      <button onclick="$('#trans_modal').addClass('hidden')" class="text-white hover:text-gray-200"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <div class="p-6">
+      <form id="form_trans" onsubmit="window.handleTransSubmit(event)">
+        <input type="hidden" name="_row" id="trans_row">
+        <input type="hidden" name="Transaction_ID" id="new_trans_id">
+        <input type="hidden" name="Type" id="trans_type">
+        <input type="hidden" name="Evidence_Link" id="trans_evidence">
+
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Date</label><input type="date" name="Date" id="trans_date" required class="w-full rounded border-gray-300 shadow-sm"></div>
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Account Head</label><input type="text" name="Account_Head" id="trans_head" required class="w-full rounded border-gray-300 shadow-sm" placeholder="e.g. Bank Alfalah, Cash, Donation"></div>
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Category (Sub-Head)</label><select name="Category" id="trans_cat" class="w-full rounded border-gray-300 shadow-sm"></select></div>
+
+        <!-- Donor Link -->
+        <div class="mb-4 hidden" id="donor_select_container">
+            <label class="block text-sm font-bold text-gray-700 mb-1">Linked Donor</label>
+            <select id="trans_donor" class="w-full rounded border-gray-300 shadow-sm"><option value="">-- Guest / Anonymous --</option></select>
+        </div>
+
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Amount (Rs)</label><input type="number" name="Amount" id="trans_amt" required class="w-full rounded border-gray-300 shadow-sm font-bold text-lg"></div>
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Voucher/Receipt</label><input type="file" id="trans_file" class="w-full text-xs text-gray-500 border border-gray-300 rounded p-1"><div id="trans_file_link" class="mt-1 text-xs text-blue-600 hidden"><a href="#" target="_blank">View File</a></div></div>
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Narration</label><input type="text" name="Description" id="trans_desc" required class="w-full rounded border-gray-300 shadow-sm"></div>
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Payment Mode</label><select name="Payment_Method" id="trans_pay" class="w-full rounded border-gray-300 shadow-sm"><option>Cash</option><option>Bank Transfer</option><option>Check</option></select></div>
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Status</label><select name="Status" id="trans_status" class="w-full rounded border-gray-300 shadow-sm"><option>Cleared</option><option>Pending</option><option>Cancelled</option></select></div>
+
+        <!-- Hidden Debit/Credit -->
+        <input type="hidden" name="Debit" id="trans_debit"><input type="hidden" name="Credit" id="trans_credit">
+
+        <button type="submit" id="btn_save_trans" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded shadow-lg">Save Entry</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Ensure jQuery is loaded before running scripts
+  (function waitForjQuery() {
+      if (typeof window.jQuery === 'undefined') {
+          setTimeout(waitForjQuery, 100);
+          return;
+      }
+
+      var transactions = [];
+      var donors = [];
+      var isEditMode = false;
+
+      (function(){
+          $('#trans_date').val(new Date().toISOString().split('T')[0]);
+
+          if(typeof google !== 'undefined') {
+              // LOAD DATA: Range_Accounts_Journal
+              google.script.run.withSuccessHandler(d => {
+                  transactions = d;
+                  renderTransTable();
+              }).getData('HQ', 'Range_Accounts_Journal');
+
+              // Load Donors for Dropdown
+              google.script.run.withSuccessHandler(d => {
+                  donors = d;
+                  populateDonorDropdown();
+              }).getData('HQ', 'Range_Donor_Database');
+          }
+      })();
+
+      function renderTransTable() {
+          if ($.fn.DataTable.isDataTable('#tableTransactions')) { $('#tableTransactions').DataTable().destroy(); }
+
+          $('#tableTransactions').DataTable({
+              data: transactions, destroy: true, autoWidth: false, order: [[0, 'desc']],
+              columns: [
+                  { data: null, render: r => `<div><span class="font-bold text-gray-700">${r.Date}</span></div><div class="text-[10px] font-mono text-gray-400">${r.Transaction_ID}</div>` },
+                  { data: null, render: r => {
+                      const color = r.Type === 'Income' ? 'text-green-700 bg-green-50 border-green-200' : 'text-red-700 bg-red-50 border-red-200';
+                      const head = r.Account_Head || r.Category || 'Unclassified';
+                      return `<div><span class="font-bold text-gray-800">${head}</span><span class="text-[10px] uppercase px-1.5 py-0.5 rounded border ${color} inline-block mb-1 ml-2">${r.Type}</span><div class="text-xs text-gray-500 truncate max-w-xs" title="${r.Description}">${r.Description}</div></div>`;
+                  }},
+                  { data: 'Amount', className: "text-right font-bold text-gray-800", render: a => Number(a).toLocaleString() },
+                  { data: null, className: "text-center", render: r => {
+                      let statusHtml = r.Status==='Pending' ? '<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Pending</span>' : (r.Status==='Cleared' ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Cleared</span>' : `<span class="text-xs text-gray-500">${r.Status}</span>`);
+                      let evHtml = r.Evidence_Link ? `<div class="mt-1"><a href="${r.Evidence_Link}" target="_blank" class="text-blue-600 hover:text-blue-800 text-[10px]" title="View Receipt"><i class="fa-solid fa-paperclip"></i> Receipt</a></div>` : '';
+                      return `<div>${statusHtml}${evHtml}</div>`;
+                  }},
+                  { data: null, className: "text-right", render: function(d,t,r) {
+                      return `<div class="flex justify-end gap-2"><button onclick="window.editTrans(${r._row})" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded" title="Edit"><i class="fa-solid fa-pen"></i></button><button onclick="window.deleteTrans(${r._row})" class="text-red-600 hover:bg-red-50 p-1.5 rounded" title="Delete"><i class="fa-solid fa-trash"></i></button></div>`;
+                  }}
+              ]
+          });
+      }
+
+      window.openTransModal = function(type) {
+          $('#form_trans')[0].reset(); isEditMode=false;
+          $('#new_trans_id').val("TRX-" + Date.now()); $('#trans_type').val(type);
+          $('#trans_title').text(type === 'Income' ? 'Add Income' : 'Add Expense');
+          $('#trans_file_link').addClass('hidden'); $('#trans_status').val('Cleared');
+
+          const $cat = $('#trans_cat'); $cat.empty();
+          const incCats = ['General Donation','Zakat','Sadaqah','Specific Project','Other Income'];
+          const expCats = ['Salaries','Utilities','Maintenance','Medical Supplies','Camp Expense','Rent','Office Supplies','Other'];
+          (type === 'Income' ? incCats : expCats).forEach(c => $cat.append(`<option>${c}</option>`));
+
+          if(type === 'Income') $('#donor_select_container').removeClass('hidden'); else $('#donor_select_container').addClass('hidden');
+          $('#trans_modal').removeClass('hidden');
+      };
+
+      window.editTrans = function(rowId) {
+          const t = transactions.find(r => r._row === rowId); if(!t) return;
+          isEditMode = true;
+          $('#form_trans')[0].reset(); $('#trans_row').val(t._row); $('#new_trans_id').val(t.Transaction_ID);
+          $('#trans_type').val(t.Type); $('#trans_date').val(t.Date ? new Date(t.Date).toISOString().split('T')[0] : '');
+
+          const $cat = $('#trans_cat'); $cat.empty();
+          const incCats = ['General Donation','Zakat','Sadaqah','Specific Project','Other Income'];
+          const expCats = ['Salaries','Utilities','Maintenance','Medical Supplies','Camp Expense','Rent','Office Supplies','Other'];
+          (t.Type === 'Income' ? incCats : expCats).forEach(c => $cat.append(`<option>${c}</option>`));
+
+          $('#trans_head').val(t.Account_Head || t.Category);
+          $('#trans_cat').val(t.Category); $('#trans_amt').val(t.Amount); $('#trans_desc').val(t.Description); $('#trans_pay').val(t.Payment_Method);
+          $('#trans_status').val(t.Status || 'Cleared'); $('#trans_evidence').val(t.Evidence_Link);
+
+          if(t.Evidence_Link) $('#trans_file_link').removeClass('hidden').find('a').attr('href', t.Evidence_Link); else $('#trans_file_link').addClass('hidden');
+          if(t.Type === 'Income') $('#donor_select_container').removeClass('hidden'); else $('#donor_select_container').addClass('hidden');
+
+          $('#trans_modal').removeClass('hidden');
+      };
+
+      window.handleTransSubmit = function(e) {
+          e.preventDefault(); const btn = $('#btn_save_trans'); btn.text('Processing...').prop('disabled', true);
+
+          // Construct form data explicitly to match sheet headers
+          const formData = {};
+          $.each($('#form_trans').serializeArray(), function() {
+              formData[this.name] = this.value;
+          });
+
+          // Logic for Debit/Credit Columns (Double Entry)
+          const amt = Number(formData.Amount);
+          if(formData.Type === 'Income') {
+              formData.Credit = amt;
+              formData.Debit = 0;
+          } else {
+              formData.Debit = amt;
+              formData.Credit = 0;
+          }
+
+          // Ensure Account Head is populated
+          if(!formData.Account_Head) formData.Account_Head = formData.Category;
+
+          // Attach Donor info to description if applicable
+          const donorId = $('#trans_donor').val();
+          if(donorId && formData.Type === 'Income') {
+              const d = donors.find(x => x.Donor_ID === donorId);
+              if(d && !formData.Description.includes(d.Full_Name)) formData.Description += ` [Donor: ${d.Full_Name}]`;
+          }
+
+          const file = document.getElementById('trans_file').files[0];
+
+          const finalize = (data) => {
+              const action = isEditMode ? 'updateData' : 'addData';
+              // Use Tab Name 'Accounts_Journal' for writing
+              const args = isEditMode ? ['HQ', 'Accounts_Journal', data._row, data] : ['HQ', 'Accounts_Journal', data];
+
+              google.script.run.withSuccessHandler(() => {
+                  alert("Saved!");
+                  $('#trans_modal').addClass('hidden');
+                  // Refresh data
+                  google.script.run.withSuccessHandler(d => {
+                      transactions = d;
+                      renderTransTable();
+                  }).getData('HQ', 'Range_Accounts_Journal');
+                  btn.text('Save Entry').prop('disabled',false);
+              }).withFailureHandler((err) => {
+                  alert("Error: " + err.message);
+                  btn.text('Save Entry').prop('disabled',false);
+              })[action](...args);
+          };
+
+          if(file) {
+              const r = new FileReader();
+              r.onload = function(ev) {
+                  google.script.run.withSuccessHandler(url => {
+                      formData.Evidence_Link = url;
+                      finalize(formData);
+                  }).withFailureHandler((err) => {
+                      alert("Upload Error: " + err.message);
+                      btn.text('Save Entry').prop('disabled',false);
+                  }).uploadFileToFolder(ev.target.result, `Receipt_${formData.Transaction_ID}`, "1R7Brrb1gfQe_ihayIeC_STJw8GeSC29X");
+              };
+              r.readAsDataURL(file);
+          } else {
+              finalize(formData);
+          }
+      };
+
+      window.deleteTrans = function(id) {
+          // Use Tab Name 'Accounts_Journal' for deleting
+          if(confirm("Delete?")) google.script.run.withSuccessHandler(() => {
+              google.script.run.withSuccessHandler(d => { transactions = d; renderTransTable(); }).getData('HQ', 'Range_Accounts_Journal');
+          }).deleteData('HQ','Accounts_Journal',id);
+      };
+
+      window.populateDonorDropdown = function() {
+          const $sel = $('#trans_donor'); $sel.empty().append('<option value="">-- Guest / Anonymous --</option>');
+          donors.forEach(d => { $sel.append(`<option value="${d.Donor_ID}">${d.Full_Name}</option>`); });
+      };
+  })();
+</script>

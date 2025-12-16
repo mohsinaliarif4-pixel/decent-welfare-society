@@ -1,0 +1,119 @@
+<script>
+  let currentUser = {};
+
+  // Wait for the document to fully load
+  document.addEventListener('DOMContentLoaded', function() {
+
+    // Robust Initialization: Check for jQuery
+    if (typeof jQuery === 'undefined') {
+      console.warn("jQuery not detected. Injecting fallback...");
+      var script = document.createElement('script');
+      script.src = "https://code.jquery.com/jquery-3.7.0.min.js";
+      script.onload = function() {
+        console.log("jQuery loaded dynamically.");
+        initializeApp();
+      };
+      script.onerror = function() {
+        alert("Critical Error: jQuery failed to load. Please refresh.");
+      };
+      document.head.appendChild(script);
+    } else {
+      initializeApp();
+    }
+  });
+
+  function handleError(e) {
+    console.error(e);
+    alert("System Error: " + e);
+  }
+
+  function initializeApp() {
+    if (typeof google === 'undefined') {
+        setTimeout(initializeApp, 500);
+        return;
+    }
+    google.script.run.withSuccessHandler(initUser).withFailureHandler(handleError).getUserRole();
+  }
+
+  function initUser(user) {
+    console.log("User Loaded:", user);
+    currentUser = user;
+
+    // Update Header Info
+    if (typeof $ !== 'undefined') {
+        $('#user-name').text(user.name);
+        $('#user-role').text(user.role + ' | ' + user.department);
+        $('#kpi-dept').text(user.department);
+    }
+
+    // Load Dashboard Logic if we are on the dashboard
+    if(typeof loadDashboardData === 'function') {
+        loadDashboardData();
+    }
+  }
+
+  // --- NAVIGATION LOGIC ---
+  window.loadPage = function(pageId) { navigate(pageId); }
+
+  function navigate(pageId) {
+    const contentDiv = document.getElementById('main-content');
+    if(contentDiv) {
+        contentDiv.innerHTML = '<div class="flex justify-center items-center h-full pt-20"><div class="loader"></div></div>';
+    }
+
+    if (typeof google === 'undefined') return;
+
+    if (pageId === 'dashboard') {
+       google.script.run.withSuccessHandler(function(html) {
+         $('#main-content').html(html);
+         // IMPORTANT: Re-trigger dashboard data load
+         loadDashboardData();
+       }).getPageContent('dashboard');
+    }
+    else {
+       google.script.run.withSuccessHandler(function(html) {
+         $('#main-content').html(html);
+       }).getPageContent(pageId);
+    }
+  }
+
+  // --- DASHBOARD LOGIC (Restored) ---
+  function loadDashboardData() {
+    // Only run if the table exists
+    if($('#approvalsTable').length === 0) return;
+
+    google.script.run.withSuccessHandler(renderApprovalsTable).getData('HQ', 'Range_Central_Approvals');
+  }
+
+  function renderApprovalsTable(data) {
+    if(!data) return;
+    const recent = data.slice(-5); // Last 5
+
+    $('#kpi-total').text(data.length);
+    const pending = data.filter(r => r.Approval_Status === 'Pending').length;
+    $('#kpi-pending').text(pending);
+
+    if ($.fn.DataTable.isDataTable('#approvalsTable')) { $('#approvalsTable').DataTable().destroy(); }
+
+    $('#approvalsTable').DataTable({
+      data: recent,
+      destroy: true,
+      paging: false,
+      searching: false,
+      info: false,
+      columns: [
+        { data: 'Request_ID' },
+        { data: 'Source_Project' },
+        { data: 'Request_Type' },
+        { data: 'Approval_Status',
+          render: function(data) {
+             let color = data === 'Pending' ? 'text-orange-600' : 'text-green-600';
+             return `<span class="font-bold ${color}">${data}</span>`;
+          }
+        }
+      ]
+    });
+
+    $('#chart-main').html('<div class="text-teal-600 text-lg">Charts loaded successfully</div>');
+  }
+</script>

@@ -1,0 +1,574 @@
+<!-- IMPORTS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<!-- DataTables & Extensions -->
+<link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
+
+<div class="p-4 no-print">
+
+  <!-- HEADER -->
+  <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+    <div>
+      <h2 class="text-2xl font-bold text-teal-800">
+        Food Package Distribution <span class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">v4.4</span>
+      </h2>
+      <p class="text-gray-600 text-sm">Inventory & Donor Management System</p>
+    </div>
+
+    <!-- NAVIGATION TABS -->
+    <div class="flex bg-gray-100 p-1 rounded-lg overflow-x-auto">
+       <button onclick="switchRationTab('new_family')" id="tab_new_family" class="px-4 py-2 text-sm font-bold rounded-md transition bg-white text-teal-700 shadow-sm whitespace-nowrap">
+         <i class="fa-solid fa-user-plus mr-1"></i> New Family
+       </button>
+       <button onclick="switchRationTab('distribution')" id="tab_distribution" class="px-4 py-2 text-sm font-bold rounded-md transition text-gray-600 hover:bg-gray-200 whitespace-nowrap">
+         <i class="fa-solid fa-hand-holding-heart mr-1"></i> Distribution
+       </button>
+       <button onclick="switchRationTab('inventory')" id="tab_inventory" class="px-4 py-2 text-sm font-bold rounded-md transition text-gray-600 hover:bg-gray-200 whitespace-nowrap">
+         <i class="fa-solid fa-boxes-stacked mr-1"></i> Inventory
+       </button>
+       <button onclick="switchRationTab('log')" id="tab_log" class="px-4 py-2 text-sm font-bold rounded-md transition text-gray-600 hover:bg-gray-200 whitespace-nowrap">
+         <i class="fa-solid fa-file-invoice mr-1"></i> Reports
+       </button>
+    </div>
+  </div>
+
+  <!-- STATS OVERVIEW -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-yellow-500">
+        <div class="text-xs font-bold text-gray-400 uppercase">Pending Approval</div>
+        <div class="text-2xl font-bold text-gray-800 mt-1" id="stat_pending">0</div>
+     </div>
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-teal-500">
+        <div class="text-xs font-bold text-gray-400 uppercase">Waiting List</div>
+        <div class="text-2xl font-bold text-teal-700 mt-1" id="stat_approved">0</div>
+     </div>
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-purple-500">
+        <div class="text-xs font-bold text-gray-400 uppercase">Stock Balance</div>
+        <div class="text-2xl font-bold text-gray-800 mt-1" id="stat_stock_balance">0</div>
+     </div>
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
+        <div class="text-xs font-bold text-gray-400 uppercase">Total Distributed</div>
+        <div class="text-2xl font-bold text-gray-800 mt-1" id="stat_total_dist">0</div>
+     </div>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- TAB 1: NEW FAMILY (REGISTRATION & APPROVAL) -->
+  <!-- ======================================================= -->
+  <div id="view_new_family" class="tab-view animate-fade-in-down">
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-teal-800 font-bold"><i class="fa-solid fa-clipboard-list mr-2"></i>New Registrations (Pending)</h3>
+        <button onclick="openFamilyModal()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm text-sm">
+          <i class="fa-solid fa-plus mr-1"></i> Register New Family
+        </button>
+      </div>
+      <div class="p-4">
+        <table id="tablePending" class="display w-full text-sm text-left text-gray-500">
+          <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+            <tr>
+              <th>CNIC Number</th>
+              <th>Head of Household</th>
+              <th>Family Size</th>
+              <th>Phone</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- TAB 2: FOOD PACKAGE DISTRIBUTION (WAITING LIST) -->
+  <!-- ======================================================= -->
+  <div id="view_distribution" class="tab-view hidden animate-fade-in-down">
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="bg-teal-50 px-6 py-4 border-b border-teal-100 flex justify-between items-center">
+        <h3 class="text-teal-800 font-bold"><i class="fa-solid fa-box-open mr-2"></i>Approved Families (Waiting for Food Package)</h3>
+        <span class="text-xs bg-teal-200 text-teal-800 px-2 py-1 rounded">Ready to Issue</span>
+      </div>
+      <div class="p-4">
+        <table id="tableApproved" class="display w-full text-sm text-left text-gray-500">
+          <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+            <tr>
+              <th>CNIC Number</th>
+              <th>Head of Household</th>
+              <th>Family Size</th>
+              <th>Zone/Region</th>
+              <th>Status</th>
+              <th class="text-right">Process</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- TAB 3: INVENTORY (DONOR STOCK) -->
+  <!-- ======================================================= -->
+  <div id="view_inventory" class="tab-view hidden animate-fade-in-down">
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="bg-purple-50 px-6 py-4 border-b border-purple-100 flex justify-between items-center">
+        <h3 class="text-purple-800 font-bold"><i class="fa-solid fa-boxes-stacked mr-2"></i>Inventory & Donors</h3>
+        <button onclick="openStockModal()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm text-sm">
+          <i class="fa-solid fa-plus mr-1"></i> Add Stock
+        </button>
+      </div>
+      <div class="p-4">
+        <table id="tableInventory" class="display w-full text-sm text-left text-gray-500">
+          <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+            <tr>
+              <th>Donor Name</th>
+              <th>Package Type</th>
+              <th class="text-right">Received</th>
+              <th class="text-right">Distributed</th>
+              <th class="text-right text-teal-700 font-bold">Balance</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- TAB 4: DISTRIBUTION LOG (HISTORY/REPORTS) -->
+  <!-- ======================================================= -->
+  <div id="view_log" class="tab-view hidden animate-fade-in-down">
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <!-- CUSTOM HEADER WITH SEARCH -->
+      <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-3">
+        <h3 class="text-orange-800 font-bold"><i class="fa-solid fa-file-invoice mr-2"></i>History & Reports</h3>
+
+        <div class="flex items-center gap-2 w-full md:w-auto">
+            <!-- CUSTOM SEARCH BAR -->
+            <div class="relative w-full md:w-48">
+                <input type="text" id="customSearch" placeholder="Search records..." class="w-full pl-8 pr-2 py-1.5 rounded text-xs border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 shadow-sm">
+                <i class="fa-solid fa-search absolute left-2.5 top-2 text-gray-400 text-xs"></i>
+            </div>
+
+            <!-- DONOR FILTER -->
+            <select id="filter_donor" onchange="filterLogByDonor()" class="text-xs border-gray-300 rounded shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-200 focus:ring-opacity-50 py-1.5">
+                <option value="">All Donors</option>
+            </select>
+
+            <button onclick="printReport()" class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-1.5 px-3 rounded text-sm shadow-sm whitespace-nowrap">
+               <i class="fa-solid fa-print mr-1"></i> Print
+            </button>
+        </div>
+      </div>
+
+      <div class="p-4">
+        <table id="tableHistory" class="display w-full text-sm text-left text-gray-500">
+          <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+            <tr>
+              <th>Date</th>
+              <th>Beneficiary CNIC</th>
+              <th>Campaign</th>
+              <th>Donor</th>
+              <th>Package Type</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODALS -->
+
+<!-- 1. REGISTER FAMILY -->
+<div id="family_modal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-1/3 overflow-hidden animate-fade-in-down">
+    <div class="bg-teal-700 px-6 py-4 flex justify-between items-center text-white">
+      <h3 class="font-bold text-lg">Register Beneficiary</h3>
+      <button onclick="$('#family_modal').addClass('hidden')"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <div class="p-6">
+      <form id="form_family" onsubmit="handleFamilySubmit(event)">
+        <input type="hidden" name="Status" value="Pending">
+        <div class="mb-4">
+           <label class="block text-sm font-bold text-gray-700 mb-1">CNIC Number (Unique ID) <span class="text-red-500">*</span></label>
+           <input type="text" name="CNIC_Number" placeholder="00000-0000000-0" required class="w-full rounded border-gray-300 shadow-sm font-mono">
+        </div>
+        <div class="mb-4">
+           <label class="block text-sm font-bold text-gray-700 mb-1">Head of Household <span class="text-red-500">*</span></label>
+           <input type="text" name="Head_of_Household" required class="w-full rounded border-gray-300 shadow-sm">
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+           <div><label class="block text-sm font-bold text-gray-700 mb-1">Phone Number</label><input type="text" name="Phone_Number" class="w-full rounded border-gray-300 shadow-sm"></div>
+           <div><label class="block text-sm font-bold text-gray-700 mb-1">Family Size</label><input type="number" name="Family_Size" value="1" min="1" class="w-full rounded border-gray-300 shadow-sm"></div>
+        </div>
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Zone / Region</label><input type="text" name="Zone_Region" class="w-full rounded border-gray-300 shadow-sm"></div>
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Address</label><textarea name="Address" rows="2" class="w-full rounded border-gray-300 shadow-sm"></textarea></div>
+        <button type="submit" id="btn_save_fam" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded shadow-lg">Submit for Approval</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 2. STATUS APPROVAL/REJECTION -->
+<div id="status_modal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-1/3 overflow-hidden animate-fade-in-down">
+    <div id="status_modal_header" class="bg-gray-700 px-6 py-4 flex justify-between items-center text-white">
+      <h3 class="font-bold text-lg" id="status_modal_title">Review Beneficiary</h3>
+      <button onclick="$('#status_modal').addClass('hidden')"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <div class="p-6">
+      <div class="bg-gray-50 p-4 rounded border mb-4">
+         <div class="flex justify-between border-b pb-2 mb-2"><span class="text-xs text-gray-500 uppercase">Head of Household</span><span class="font-bold text-gray-800" id="status_fam_name">...</span></div>
+         <div class="flex justify-between border-b pb-2 mb-2"><span class="text-xs text-gray-500 uppercase">CNIC</span><span class="font-mono font-bold text-gray-800" id="status_fam_cnic_display">...</span></div>
+         <div class="flex justify-between"><span class="text-xs text-gray-500 uppercase">Family Size</span><span class="font-bold text-gray-800" id="status_fam_size">...</span></div>
+      </div>
+      <form id="form_status" onsubmit="handleStatusSubmit(event)">
+         <input type="hidden" name="CNIC_Target" id="status_cnic_target">
+         <input type="hidden" name="New_Status" id="status_new_val">
+         <div id="reject_reason_box" class="mb-4 hidden">
+            <label class="block text-sm font-bold text-red-700 mb-1">Reason for Rejection <span class="text-red-500">*</span></label>
+            <textarea name="Reject_Reason" id="reject_reason_text" rows="2" class="w-full rounded border-red-300 focus:ring-red-500 bg-red-50 text-sm" placeholder="e.g. Income exceeds threshold..."></textarea>
+         </div>
+         <div class="text-center mb-6"><p class="text-gray-600 text-lg" id="status_confirm_text">Confirm?</p></div>
+         <div class="flex gap-3">
+             <button type="button" onclick="$('#status_modal').addClass('hidden')" class="flex-1 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded">No, Cancel</button>
+             <button type="submit" id="btn_status_confirm" class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded shadow-lg">Yes, Approve</button>
+         </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 3. ISSUE FOOD PACKAGE (UPDATED WITH DONOR SELECT) -->
+<div id="issue_modal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-1/3 overflow-hidden animate-fade-in-down">
+    <div class="bg-orange-600 px-6 py-4 flex justify-between items-center text-white">
+      <h3 class="font-bold text-lg">Issue Food Package</h3>
+      <button onclick="$('#issue_modal').addClass('hidden')"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <div class="p-6">
+      <div class="bg-orange-50 p-3 rounded border border-orange-200 mb-4">
+         <p class="text-sm text-gray-600">Beneficiary:</p>
+         <h4 class="font-bold text-lg text-gray-800" id="issue_fam_name">...</h4>
+         <p class="text-xs text-gray-500 font-mono">CNIC: <span id="issue_fam_cnic_display">...</span></p>
+      </div>
+      <form id="form_issue" onsubmit="handleIssueSubmit(event)">
+        <input type="hidden" name="Distribution_ID" id="dist_id">
+        <input type="hidden" name="Beneficiary_CNIC" id="issue_fam_cnic_hidden">
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+           <div><label class="block text-sm font-bold text-gray-700 mb-1">Distribution Date</label><input type="date" name="Date" id="issue_date" required class="w-full rounded border-gray-300 shadow-sm"></div>
+           <div><label class="block text-sm font-bold text-gray-700 mb-1">Campaign ID</label><input type="text" name="Campaign_ID" placeholder="e.g. RAMADAN-2025" class="w-full rounded border-gray-300 shadow-sm"></div>
+        </div>
+
+        <div class="mb-4">
+           <label class="block text-sm font-bold text-gray-700 mb-1">Donor Source <span class="text-red-500">*</span></label>
+           <select name="Donor_Name" id="issue_donor_select" required class="w-full rounded border-gray-300 shadow-sm font-bold text-purple-800">
+              <option value="">-- Select Available Stock --</option>
+           </select>
+           <p class="text-xs text-gray-500 mt-1">Only shows donors with available balance.</p>
+        </div>
+
+        <div class="mb-4">
+           <label class="block text-sm font-bold text-gray-700 mb-1">Package Type</label>
+           <input type="text" name="Package_Type" id="issue_package_type" readonly class="w-full bg-gray-100 rounded border-gray-300 shadow-sm text-gray-600">
+        </div>
+
+        <button type="submit" id="btn_save_issue" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded shadow-lg">Confirm & Issue</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 4. ADD STOCK MODAL (NEW) -->
+<div id="stock_modal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-1/3 overflow-hidden animate-fade-in-down">
+    <div class="bg-purple-700 px-6 py-4 flex justify-between items-center text-white">
+      <h3 class="font-bold text-lg">Add Donor Stock</h3>
+      <button onclick="$('#stock_modal').addClass('hidden')"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <div class="p-6">
+      <form id="form_stock" onsubmit="handleStockSubmit(event)">
+        <div class="mb-4">
+           <label class="block text-sm font-bold text-gray-700 mb-1">Donor Name <span class="text-red-500">*</span></label>
+           <input type="text" name="Donor_Name" placeholder="e.g. MIAT" required class="w-full rounded border-gray-300 shadow-sm">
+        </div>
+        <div class="mb-4">
+           <label class="block text-sm font-bold text-gray-700 mb-1">Package Type <span class="text-red-500">*</span></label>
+           <select name="Item_Name" required class="w-full rounded border-gray-300 shadow-sm">
+              <option value="Standard Food Package">Standard Food Package</option>
+              <option value="Ramadan Pack">Ramadan Pack</option>
+              <option value="Flour Bag (20kg)">Flour Bag (20kg)</option>
+           </select>
+        </div>
+        <div class="mb-4">
+           <label class="block text-sm font-bold text-gray-700 mb-1">Quantity Received <span class="text-red-500">*</span></label>
+           <input type="number" name="Qty_Received" min="1" required class="w-full rounded border-gray-300 shadow-sm">
+        </div>
+        <div class="mb-4 hidden">
+           <!-- Hidden Defaults -->
+           <input type="hidden" name="Qty_Distributed" value="0">
+           <input type="hidden" name="Current_Balance" value="0">
+        </div>
+        <button type="submit" id="btn_save_stock" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded shadow-lg">Save Inventory</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .animate-fade-in-down { animation: fadeInDown 0.3s ease-out; }
+  @keyframes fadeInDown { from { opacity: 0; transform: translate3d(0, -20px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+  .tab-btn-active { background-color: #0f766e !important; color: white !important; }
+
+  /* HIDE DEFAULT DATATABLE CONTROLS TO PREVENT DUPLICATES & VISUAL NOISE */
+  .dt-buttons { display: none; }
+  .dataTables_filter { display: none; } /* Hide default search bar to use custom one */
+</style>
+
+<script>
+  let families = [];
+  let history = [];
+  let inventory = [];
+
+  // --- INIT ---
+  (function(){
+     const today = new Date().toISOString().split('T')[0];
+     $('#issue_date').val(today);
+     if(typeof google !== 'undefined') loadData();
+
+     if(typeof window.RATION_TAB !== 'undefined' && window.RATION_TAB) switchRationTab(window.RATION_TAB);
+     else switchRationTab('new_family');
+
+     // Bind Donor Select in Issue Modal
+     $('#issue_donor_select').on('change', function() {
+        const selectedOption = $(this).find(':selected');
+        const pkg = selectedOption.data('pkg');
+        $('#issue_package_type').val(pkg || '');
+     });
+
+     // BIND CUSTOM SEARCH INPUT (Fixes search reliability)
+     $('#customSearch').on('keyup', function() {
+        if($.fn.DataTable.isDataTable('#tableHistory')) {
+            $('#tableHistory').DataTable().search(this.value).draw();
+        }
+     });
+  })();
+
+  function loadData() {
+      // 1. Families
+      google.script.run.withSuccessHandler(data => {
+          families = data;
+          processFamilies();
+      }).getData('RATION', 'Beneficiaries_Master');
+
+      // 2. Inventory
+      google.script.run.withSuccessHandler(data => {
+          inventory = data;
+          const totalBal = inventory.reduce((acc, curr) => acc + (Number(curr.Current_Balance)||0), 0);
+          $('#stat_stock_balance').text(totalBal);
+          renderInventoryTable();
+          populateDonorDropdown();
+      }).getData('RATION', 'Ration_Inventory');
+
+      // 3. History
+      google.script.run.withSuccessHandler(data => {
+          history = data;
+          $('#stat_total_dist').text(data.length);
+          renderHistoryTable();
+      }).getData('RATION', 'Distribution_Log');
+  }
+
+  function processFamilies() {
+      const pending = families.filter(f => !f.Status || f.Status === 'Pending' || f.Status === 'Hold');
+      const approved = families.filter(f => f.Status === 'Approved');
+      $('#stat_pending').text(pending.length);
+      $('#stat_approved').text(approved.length);
+      renderPendingTable(pending);
+      renderApprovedTable(approved);
+  }
+
+  function switchRationTab(tabId) {
+     $('.tab-view').addClass('hidden');
+     $('#view_' + tabId).removeClass('hidden');
+     $('[id^="tab_"]').removeClass('tab-btn-active bg-teal-700 text-white').addClass('text-gray-600 hover:bg-gray-200');
+     $('#tab_' + tabId).addClass('tab-btn-active');
+
+     if(tabId === 'log') {
+         setTimeout(() => {
+             // Resize adjustment only
+             if($.fn.DataTable.isDataTable('#tableHistory')) {
+                 $('#tableHistory').DataTable().columns.adjust().draw();
+             }
+         }, 150);
+     }
+
+     if(tabId === 'inventory') {
+         setTimeout(() => {
+             if($.fn.DataTable.isDataTable('#tableInventory')) {
+                 $('#tableInventory').DataTable().columns.adjust().draw();
+             }
+         }, 150);
+     }
+  }
+
+  function populateDonorDropdown() {
+      const $select = $('#issue_donor_select');
+      $select.empty().append('<option value="">-- Select Available Stock --</option>');
+
+      const $filter = $('#filter_donor');
+      const currentFilter = $filter.val();
+      $filter.empty().append('<option value="">All Donors</option>');
+
+      const donors = new Set();
+      inventory.forEach(item => {
+          const bal = Number(item.Current_Balance) || 0;
+          if (bal > 0) {
+              $select.append(`<option value="${item.Donor_Name}" data-pkg="${item.Item_Name}">${item.Donor_Name} - ${item.Item_Name} (Bal: ${bal})</option>`);
+          }
+          donors.add(item.Donor_Name);
+      });
+      donors.forEach(d => { $filter.append(`<option value="${d}">${d}</option>`); });
+      $filter.val(currentFilter);
+  }
+
+  // --- RENDERING FUNCTIONS (UPDATED TO PREVENT DUPLICATES) ---
+
+  function renderPendingTable(data) {
+      if ($.fn.DataTable.isDataTable('#tablePending')) {
+          // Use Clear/Add pattern instead of destroy to prevent ghost DOM elements
+          var table = $('#tablePending').DataTable();
+          table.clear().rows.add(data).draw();
+      } else {
+          $('#tablePending').DataTable({
+              data: data, autoWidth: false,
+              columns: [ { data: 'CNIC_Number', className: "font-mono font-bold" }, { data: 'Head_of_Household' }, { data: 'Family_Size' }, { data: 'Phone_Number' }, { data: null, className: "text-right", render: (d,t,r) => `<div class="flex justify-end gap-2"><button onclick="openStatusModal('${r.CNIC_Number}', 'Approved')" class="bg-green-100 text-green-700 px-2 rounded text-xs font-bold border border-green-300">Approve</button><button onclick="openStatusModal('${r.CNIC_Number}', 'Rejected')" class="bg-red-50 text-red-600 px-2 rounded text-xs font-bold border border-red-200">Reject</button></div>` } ]
+          });
+      }
+  }
+
+  function renderApprovedTable(data) {
+      if ($.fn.DataTable.isDataTable('#tableApproved')) {
+          var table = $('#tableApproved').DataTable();
+          table.clear().rows.add(data).draw();
+      } else {
+          $('#tableApproved').DataTable({
+              data: data, autoWidth: false,
+              columns: [ { data: 'CNIC_Number', className: "font-mono font-bold text-teal-700" }, { data: 'Head_of_Household' }, { data: 'Family_Size' }, { data: 'Zone_Region' }, { data: 'Status', render: () => '<span class="text-xs bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold">Approved</span>' }, { data: null, className: "text-right", render: (d,t,r) => `<button onclick="openIssueModal('${r.CNIC_Number}')" class="bg-orange-600 text-white hover:bg-orange-700 px-3 py-1.5 rounded text-xs font-bold shadow-md">Issue Food Package</button>` } ]
+          });
+      }
+  }
+
+  function renderInventoryTable() {
+      if ($.fn.DataTable.isDataTable('#tableInventory')) {
+          var table = $('#tableInventory').DataTable();
+          table.clear().rows.add(inventory).draw();
+      } else {
+          $('#tableInventory').DataTable({
+              data: inventory, autoWidth: false,
+              columns: [
+                 { data: 'Donor_Name', className: "font-bold text-purple-700" },
+                 { data: 'Item_Name' },
+                 { data: 'Qty_Received', className: "text-right" },
+                 { data: 'Qty_Distributed', className: "text-right text-gray-400" },
+                 { data: 'Current_Balance', className: "text-right font-bold text-teal-600" }
+              ]
+          });
+      }
+  }
+
+  function renderHistoryTable() {
+      // Robust Check: Use clear().rows.add() to prevent duplicate footers
+      if ($.fn.DataTable.isDataTable('#tableHistory')) {
+          var table = $('#tableHistory').DataTable();
+          table.clear();
+          table.rows.add(history);
+          table.draw();
+      } else {
+          $('#tableHistory').DataTable({
+              data: history,
+              autoWidth: false,
+              order: [[0, 'desc']],
+              // 'dom' controls the layout. B=Buttons, r=Processing, t=Table, i=Info, p=Pagination
+              dom: 'Brtip',
+              buttons: [ { extend: 'print', text: 'Print List', title: 'Distribution Log', autoPrint: true, customize: function(win) { $(win.document.body).prepend('<h5 style="text-align:center;">Report Generated: '+new Date().toLocaleString()+'</h5>'); } } ],
+              columns: [
+                 { data: 'Date' },
+                 { data: 'Beneficiary_CNIC', className: "font-mono text-xs" },
+                 { data: 'Campaign_ID', className: "text-xs text-gray-500" },
+                 { data: 'Donor_Name', className: "font-bold text-purple-700", defaultContent: "-" },
+                 { data: 'Package_Type' }
+              ]
+          });
+      }
+  }
+
+  function filterLogByDonor() {
+      const donor = $('#filter_donor').val();
+      const table = $('#tableHistory').DataTable();
+      if(donor) {
+          table.column(3).search(donor).draw();
+      } else {
+          table.column(3).search('').draw();
+      }
+  }
+
+  // --- ACTIONS ---
+  window.openStockModal = function() { $('#form_stock')[0].reset(); $('#stock_modal').removeClass('hidden'); };
+
+  window.handleStockSubmit = function(e) {
+      e.preventDefault();
+      const btn = $('#btn_save_stock'); btn.text('Saving...').prop('disabled', true);
+      const fd = {}; $('#form_stock').serializeArray().forEach(i => fd[i.name] = i.value);
+      fd.Qty_Distributed = 0; fd.Current_Balance = fd.Qty_Received;
+      google.script.run.withSuccessHandler(() => {
+          alert("Stock Added Successfully!"); $('#stock_modal').addClass('hidden'); loadData(); btn.text('Save Inventory').prop('disabled', false);
+      }).addData('RATION', 'Ration_Inventory', fd);
+  };
+
+  window.openIssueModal = function(cnic) {
+      const fam = families.find(f => String(f.CNIC_Number) === String(cnic));
+      if(!fam) return;
+      $('#issue_fam_name').text(fam.Head_of_Household);
+      $('#issue_fam_cnic_display').text(fam.CNIC_Number);
+      $('#issue_fam_cnic_hidden').val(fam.CNIC_Number);
+      $('#dist_id').val("DIST-" + Date.now());
+      $('#issue_modal').removeClass('hidden');
+  };
+
+  window.handleIssueSubmit = function(e) {
+      e.preventDefault();
+      const btn = $('#btn_save_issue'); btn.text('Processing...').prop('disabled', true);
+      const fd = {}; $('#form_issue').serializeArray().forEach(i => fd[i.name] = i.value);
+      const invItem = inventory.find(i => i.Donor_Name === fd.Donor_Name && i.Item_Name === fd.Package_Type && Number(i.Current_Balance) > 0);
+      if (!invItem || !invItem._row) { alert("Error: Stock empty or not found."); btn.text('Confirm & Issue').prop('disabled', false); return; }
+      const updatedInv = { ...invItem }; updatedInv.Qty_Distributed = Number(updatedInv.Qty_Distributed) + 1; updatedInv.Current_Balance = Number(updatedInv.Qty_Received) - updatedInv.Qty_Distributed;
+      google.script.run.withSuccessHandler(() => {
+          google.script.run.withSuccessHandler(() => {
+              const fam = families.find(f => String(f.CNIC_Number) === String(fd.Beneficiary_CNIC));
+              const updatedFam = { ...fam, Status: 'Served' };
+              google.script.run.withSuccessHandler(() => {
+                  alert("Food Package Issued & Inventory Updated!"); $('#issue_modal').addClass('hidden'); $('#form_issue')[0].reset(); loadData(); btn.text('Confirm & Issue').prop('disabled', false);
+              }).updateData('RATION', 'Beneficiaries_Master', fam._row, updatedFam);
+          }).addData('RATION', 'Distribution_Log', fd);
+      }).updateData('RATION', 'Ration_Inventory', invItem._row, updatedInv);
+  };
+
+  window.printReport = function() {
+      if (!$.fn.DataTable.isDataTable('#tableHistory')) { alert('No data.'); return; }
+      $('#tableHistory').DataTable().button(0).trigger();
+  };
+
+  window.openFamilyModal = function() { $('#form_family')[0].reset(); $('#family_modal').removeClass('hidden'); };
+  window.handleFamilySubmit = function(e) { e.preventDefault(); const btn = $('#btn_save_fam'); btn.text('Saving...').prop('disabled',true); const fd = {}; $('#form_family').serializeArray().forEach(i => fd[i.name] = i.value); google.script.run.withSuccessHandler(() => { alert("Family Registered!"); $('#family_modal').addClass('hidden'); loadData(); btn.text('Submit').prop('disabled',false); }).addData('RATION', 'Beneficiaries_Master', fd); };
+  window.openStatusModal = function(cnic, action) { const fam = families.find(f => String(f.CNIC_Number) === String(cnic)); if(!fam) return; $('#status_fam_name').text(fam.Head_of_Household); $('#status_fam_cnic_display').text(fam.CNIC_Number); $('#status_fam_size').text(fam.Family_Size); $('#status_cnic_target').val(cnic); $('#status_new_val').val(action); if (action === 'Approved') { $('#status_modal_header').removeClass('bg-red-700').addClass('bg-green-700'); $('#status_modal_title').text('Approve'); $('#status_confirm_text').text('Confirm Approve?'); $('#btn_status_confirm').removeClass('bg-red-600').addClass('bg-green-600').text('Yes, Approve'); $('#reject_reason_box').addClass('hidden'); } else { $('#status_modal_header').removeClass('bg-green-700').addClass('bg-red-700'); $('#status_modal_title').text('Reject'); $('#status_confirm_text').text('Confirm Reject?'); $('#btn_status_confirm').removeClass('bg-green-600').addClass('bg-red-600').text('Yes, Reject'); $('#reject_reason_box').removeClass('hidden'); } $('#status_modal').removeClass('hidden'); };
+  window.handleStatusSubmit = function(e) { e.preventDefault(); const cnic = $('#status_cnic_target').val(); const newStatus = $('#status_new_val').val(); const reason = $('#reject_reason_text').val(); const fam = families.find(f => String(f.CNIC_Number) === String(cnic)); if(!fam) return; const btn = $('#btn_status_confirm'); btn.text('...').prop('disabled',true); let updatedFam = { ...fam, Status: newStatus }; if (newStatus === 'Rejected' && reason) updatedFam.Address = (updatedFam.Address || "") + ` [REJECTED: ${reason}]`; $('#status_modal').addClass('hidden'); const index = families.findIndex(f => String(f.CNIC_Number) === String(cnic)); if(index !== -1) families[index] = updatedFam; processFamilies(); google.script.run.withSuccessHandler(() => { loadData(); btn.prop('disabled',false); btn.text('Yes'); }).updateData('RATION', 'Beneficiaries_Master', fam._row, updatedFam); };
+</script>
