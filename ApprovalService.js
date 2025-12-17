@@ -125,3 +125,81 @@ function processApproval(requestId, decision, comments) {
     return "Error: " + e.toString();
   }
 }
+
+/**
+ * Fetches all approval requests for a specific project.
+ * @param {string} projectKey - The key from Config.
+ * @returns {Array} List of request objects.
+ */
+function getProjectRequests(projectKey) {
+  try {
+    return getData(projectKey, 'Approval_Requests_Local');
+  } catch (e) {
+    Logger.log("Error fetching project requests: " + e.toString());
+    return [];
+  }
+}
+
+/**
+ * Deletes a request from the Local Project Sheet.
+ * Note: Does not currently delete from HQ Central to preserve audit history,
+ * but could be extended to mark as 'Cancelled' in HQ.
+ * @param {string} projectKey - The key from Config.
+ * @param {number} rowNumber - The row number to delete.
+ */
+function deleteProjectRequest(projectKey, rowNumber) {
+  try {
+     return deleteData(projectKey, 'Approval_Requests_Local', rowNumber);
+  } catch (e) {
+     Logger.log("Error deleting request: " + e.toString());
+     throw new Error(e.toString());
+  }
+}
+
+/**
+ * Updates a request in the Local Project Sheet.
+ * @param {string} projectKey - The key from Config.
+ * @param {number} rowNumber - The row number to update.
+ * @param {Object} dataObj - The updated data.
+ */
+function updateProjectRequest(projectKey, rowNumber, dataObj) {
+    try {
+        return updateData(projectKey, 'Approval_Requests_Local', rowNumber, dataObj);
+    } catch(e) {
+        Logger.log("Error updating request: " + e.toString());
+        throw new Error(e.toString());
+    }
+}
+
+/**
+ * Generates approval statistics for a given date range.
+ * @param {string} fromDate - Start date (YYYY-MM-DD).
+ * @param {string} toDate - End date (YYYY-MM-DD).
+ * @returns {Object} Stats object { total, approved, rejected, pending, list: [] }
+ */
+function getApprovalStats(fromDate, toDate) {
+  try {
+    const allRequests = getData('HQ', 'Central_Approvals');
+    const start = new Date(fromDate);
+    const end = new Date(toDate);
+    end.setHours(23, 59, 59, 999); // Include the entire end day
+
+    const filtered = allRequests.filter(req => {
+      const reqDate = new Date(req.Request_Date);
+      return reqDate >= start && reqDate <= end;
+    });
+
+    const stats = {
+      total: filtered.length,
+      approved: filtered.filter(r => r.Approval_Status === 'Approved').length,
+      rejected: filtered.filter(r => r.Approval_Status === 'Rejected').length,
+      pending: filtered.filter(r => r.Approval_Status === 'Pending').length,
+      list: filtered
+    };
+
+    return stats;
+  } catch (e) {
+    Logger.log("Error getting stats: " + e.toString());
+    throw new Error(e.toString());
+  }
+}

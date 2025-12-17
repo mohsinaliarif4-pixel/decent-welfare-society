@@ -3,7 +3,7 @@
   <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
     <div>
       <h2 class="text-2xl font-bold text-teal-800">
-        Mahomed Gatrad Limb Centre <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-full">v4.2</span>
+        Mahomed Gatrad Limb Centre <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-full">v4.3</span>
       </h2>
       <p class="text-gray-600 text-sm">Multi-Department Patient System</p>
     </div>
@@ -28,7 +28,21 @@
   <div id="status-bar" class="hidden mb-4 px-4 py-2 bg-blue-50 text-blue-800 rounded border border-blue-100 text-xs font-mono">
     Status: <span id="status-msg">Initializing...</span>
   </div>
-  <div id="view-patient-list" class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+
+  <!-- TABS FOR PATIENT LIST / REQUEST LIST -->
+  <div class="mb-4 border-b border-gray-200">
+    <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="moduleTabs" role="tablist">
+        <li class="mr-2" role="presentation">
+            <button class="inline-block p-4 border-b-2 rounded-t-lg text-teal-600 border-teal-600 active hover:text-teal-600 hover:border-teal-600" id="tab-patients" type="button" role="tab" onclick="switchTab('patients')">Patient List</button>
+        </li>
+        <li class="mr-2" role="presentation">
+            <button class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" id="tab-requests" type="button" role="tab" onclick="switchTab('requests')">Approval Requests</button>
+        </li>
+    </ul>
+  </div>
+
+  <!-- VIEW: PATIENT LIST -->
+  <div id="view-patient-list" class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden tab-content">
     <div class="bg-gradient-to-r from-gray-50 to-white px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
       <div class="flex items-center gap-2">
         <h3 class="text-teal-800 font-bold text-lg"><i class="fa-solid fa-hospital-user mr-2"></i>Patient List</h3>
@@ -63,6 +77,29 @@
         <tbody class="divide-y divide-gray-100"></tbody>
       </table>
     </div>
+  </div>
+
+  <!-- VIEW: REQUESTS LIST -->
+  <div id="view-requests-list" class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden tab-content hidden">
+      <div class="bg-gradient-to-r from-purple-50 to-white px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+          <h3 class="text-purple-800 font-bold text-lg"><i class="fa-solid fa-list-check mr-2"></i>Approval Requests</h3>
+          <button onclick="loadProjectRequests()" class="text-purple-600 hover:text-purple-800 text-sm font-bold"><i class="fa-solid fa-sync mr-1"></i> Refresh</button>
+      </div>
+      <div class="p-4 w-full">
+          <table id="requestsTable" class="display w-full text-sm text-left text-gray-500" style="width:100%">
+              <thead class="bg-gray-50 text-gray-700 uppercase text-xs font-bold tracking-wider">
+                  <tr>
+                      <th class="py-3 px-4">Req ID</th>
+                      <th class="py-3 px-4">Patient Name</th>
+                      <th class="py-3 px-4">Type</th>
+                      <th class="py-3 px-4">Cost</th>
+                      <th class="py-3 px-4">Status</th>
+                      <th class="py-3 px-4 text-right">Actions</th>
+                  </tr>
+              </thead>
+              <tbody></tbody>
+          </table>
+      </div>
   </div>
 </div>
 
@@ -127,7 +164,7 @@
   </div>
 </div>
 
-<!-- FORM: ADD/EDIT -->
+<!-- FORM: ADD/EDIT PATIENT -->
 <div id="view-patient-form" class="fixed inset-0 z-50 overflow-y-auto hidden no-print bg-gray-900 bg-opacity-80 flex justify-center items-start pt-10 pb-10">
   <div class="relative w-11/12 md:w-2/3 lg:w-1/2 bg-white rounded-xl shadow-2xl overflow-hidden animate-fade-in-down">
     <div class="bg-teal-700 px-6 py-4 flex justify-between items-center">
@@ -231,7 +268,7 @@
   </div>
 </div>
 
-<!-- NEW: APPROVAL REQUEST MODAL -->
+<!-- APPROVAL REQUEST MODAL -->
 <div id="approval_request_modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-gray-900 bg-opacity-80 flex justify-center items-start pt-10 pb-10">
   <div class="relative w-11/12 md:w-2/3 lg:w-1/2 bg-white rounded-xl shadow-2xl overflow-hidden animate-fade-in-down flex flex-col max-h-[90vh]">
     <div class="bg-purple-800 px-6 py-4 flex justify-between items-center shrink-0">
@@ -247,17 +284,18 @@
     <div class="p-6 overflow-y-auto custom-scrollbar flex-grow bg-white">
       <form id="form_approval_request" onsubmit="handleApprovalRequestSubmit(event)">
         <input type="hidden" name="Source_Project" value="LIMB_CENTRE">
+        <input type="hidden" name="edit_request_row" id="edit_request_row" value="">
 
         <div class="mb-4">
           <label class="block text-sm font-bold text-gray-700 mb-2">Select Registered Patient <span class="text-red-500">*</span></label>
-          <select name="Patient_ID" id="approval_patient_select" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 font-bold text-gray-800">
-            <option value="">-- Search Patients --</option>
+          <select name="Patient_ID" id="approval_patient_select" required class="w-full rounded-lg border-gray-300 shadow-sm font-bold text-gray-800">
+            <option value="">-- Select Patient --</option>
           </select>
         </div>
 
         <div class="mb-4">
           <label class="block text-sm font-bold text-gray-700 mb-2">Request Type <span class="text-red-500">*</span></label>
-          <select name="Request_Type" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+          <select id="request_type_select" name="Request_Type_Select" onchange="toggleOtherInput(this)" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
             <option value="">-- Choose Request Type --</option>
             <option value="Sponsorship for Surgery">🏥 Sponsorship for Surgery</option>
             <option value="OPD Treatment">👨‍⚕️ OPD Treatment</option>
@@ -270,6 +308,8 @@
             <option value="Diagnostic Tests">🔬 Diagnostic Tests</option>
             <option value="Other">📋 Other</option>
           </select>
+          <input type="text" id="request_type_other" name="Request_Type_Other" class="w-full rounded-lg border-gray-300 shadow-sm mt-2 hidden" placeholder="Enter custom request type...">
+          <input type="hidden" name="Request_Type" id="final_request_type">
         </div>
 
         <div class="grid grid-cols-2 gap-4 mb-4">
@@ -305,6 +345,11 @@
   </div>
 </div>
 
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <style>
   @keyframes fadeInDown { from { opacity: 0; transform: translate3d(0, -20px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
   .animate-fade-in-down { animation: fadeInDown 0.3s ease-out; }
@@ -317,10 +362,11 @@
   table.dataTable.display tbody td { padding: 12px 16px; border-top: 1px solid #f3f4f6; }
   table.dataTable.no-footer { border-bottom: 1px solid #e5e7eb; }
   @media print { body * { visibility: hidden; } #printable_dossier, #printable_dossier * { visibility: visible; } #printable_dossier { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; box-shadow: none; border: none; min-height: auto; } .no-print { display: none !important; } .print-header { display: block !important; } * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
-  /* NEW: Approval Modal Styles */
-  #approval_request_modal select option {
-    padding: 8px;
-  }
+
+  /* Select2 Styling Overrides */
+  .select2-container .select2-selection--single { height: 42px; border: 1px solid #d1d5db; border-radius: 0.5rem; display: flex; align-items: center; }
+  .select2-container--default .select2-selection--single .select2-selection__arrow { height: 40px; }
+  .select2-container--default .select2-selection--single .select2-selection__rendered { color: #1f2937; font-weight: bold; }
 </style>
 
 <script>
@@ -328,6 +374,7 @@
   var isEditMode = false;
   var allPatients = [];
   var filteredPatients = [];
+  var allRequests = [];
 
   function formatDriveUrl(url) {
     if (!url) return '';
@@ -338,6 +385,21 @@
 
   window.debugData = function() {
     if(allPatients.length > 0) { alert("DEBUG INFO:\nFirst Record: " + JSON.stringify(allPatients[0], null, 2)); } else { alert("0 Records in memory."); }
+  };
+
+  window.switchTab = function(tabName) {
+      if (tabName === 'patients') {
+          $('#tab-patients').addClass('text-teal-600 border-teal-600').removeClass('border-transparent text-gray-600');
+          $('#tab-requests').removeClass('text-teal-600 border-teal-600').addClass('border-transparent text-gray-600');
+          $('#view-patient-list').removeClass('hidden');
+          $('#view-requests-list').addClass('hidden');
+      } else {
+          $('#tab-requests').addClass('text-teal-600 border-teal-600').removeClass('border-transparent text-gray-600');
+          $('#tab-patients').removeClass('text-teal-600 border-teal-600').addClass('border-transparent text-gray-600');
+          $('#view-requests-list').removeClass('hidden');
+          $('#view-patient-list').addClass('hidden');
+          loadProjectRequests();
+      }
   };
 
   window.loadLimbPatients = function() {
@@ -637,6 +699,9 @@
   window.openApprovalRequestForm = function() {
     loadPatientsForApprovalSearch();
     $('#form_approval_request')[0].reset();
+    $('#edit_request_row').val('');
+    $('#request_type_other').addClass('hidden');
+    $('#approval_patient_select').val(null).trigger('change');
     $('#approval_request_modal').removeClass('hidden');
   };
 
@@ -645,9 +710,24 @@
     $('#form_approval_request')[0].reset();
   };
 
+  window.toggleOtherInput = function(select) {
+    if(select.value === 'Other') {
+        $('#request_type_other').removeClass('hidden').prop('required', true);
+    } else {
+        $('#request_type_other').addClass('hidden').prop('required', false);
+    }
+  };
+
   function loadPatientsForApprovalSearch() {
-    const select = $('#approval_patient_select');
-    select.empty().append('<option value="">-- Loading Patients --</option>');
+    // Check if Select2 is already initialized on this element
+    if (!$('#approval_patient_select').hasClass("select2-hidden-accessible")) {
+        $('#approval_patient_select').select2({
+            dropdownParent: $('#approval_request_modal'),
+            width: '100%',
+            placeholder: '-- Select Patient --',
+            allowClear: true
+        });
+    }
 
     if (allPatients && allPatients.length > 0) {
       populatePatientDropdown(allPatients);
@@ -666,8 +746,9 @@
     patients.forEach(patient => {
       const dept = patient.Department || 'General';
       const label = `${patient.Full_Name} [MR: ${patient.MR_Number}] (${dept})`;
-      select.append(`<option value="${patient.Patient_ID}">${label}</option>`);
+      select.append(new Option(label, patient.Patient_ID, false, false));
     });
+    select.trigger('change');
   }
 
   window.handleApprovalRequestSubmit = function(e) {
@@ -676,33 +757,153 @@
     const originalText = btn.html();
     btn.html('<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Submitting...').prop('disabled', true);
 
+    // Process Request Type
+    const selectedType = $('#request_type_select').val();
+    const customType = $('#request_type_other').val();
+    const finalType = (selectedType === 'Other') ? customType : selectedType;
+    $('#final_request_type').val(finalType);
+
     const formData = {};
     $('#form_approval_request').serializeArray().forEach(field => {
       formData[field.name] = field.value;
     });
 
-    const selectedPatient = $('#approval_patient_select option:selected').text();
-    const patientName = selectedPatient.split(' [')[0];
-    formData.Patient_Name = patientName;
-
-    google.script.run
-      .withSuccessHandler(function(response) {
-        if(response.status === "Success") {
-          alert('✅ Approval request sent successfully to HQ!\nRequest ID: ' + response.id);
-          closeApprovalRequestForm();
-          if (typeof loadDashboardData === 'function') {
-            loadDashboardData();
-          }
-        } else {
-          alert('❌ Error: ' + response.message);
+    // Get Patient Name
+    const selectedPatientData = $('#approval_patient_select').select2('data')[0];
+    if (selectedPatientData) {
+        formData.Patient_Name = selectedPatientData.text.split(' [')[0];
+    } else if (formData.edit_request_row) {
+        // In edit mode, if select2 is empty (maybe wasn't touched), we might keep original name
+        // But here we enforce selecting/re-selecting if it's cleared
+        if(!formData.Patient_ID) {
+             alert("Please select a patient.");
+             btn.html(originalText).prop('disabled', false);
+             return;
         }
-        btn.html(originalText).prop('disabled', false);
-      })
-      .withFailureHandler(function(error) {
-        alert('❌ Submission failed: ' + error.message);
-        btn.html(originalText).prop('disabled', false);
-      })
-      .submitRequest('LIMB_CENTRE', formData);
+    }
+
+    // Logic for Edit vs New
+    if (formData.edit_request_row) {
+        // Update Existing
+        google.script.run.withSuccessHandler(function() {
+            alert('✅ Request Updated Successfully!');
+            closeApprovalRequestForm();
+            loadProjectRequests();
+            btn.html(originalText).prop('disabled', false);
+        }).withFailureHandler(function(err){
+             alert('❌ Update failed: ' + err.message);
+             btn.html(originalText).prop('disabled', false);
+        }).updateProjectRequest('LIMB_CENTRE', formData.edit_request_row, formData);
+    } else {
+        // Create New
+        google.script.run
+          .withSuccessHandler(function(response) {
+            if(response.status === "Success") {
+              alert('✅ Approval request sent successfully to HQ!\nRequest ID: ' + response.id);
+              closeApprovalRequestForm();
+              if(!$('#view-requests-list').hasClass('hidden')) {
+                  loadProjectRequests();
+              }
+            } else {
+              alert('❌ Error: ' + response.message);
+            }
+            btn.html(originalText).prop('disabled', false);
+          })
+          .withFailureHandler(function(error) {
+            alert('❌ Submission failed: ' + error.message);
+            btn.html(originalText).prop('disabled', false);
+          })
+          .submitRequest('LIMB_CENTRE', formData);
+    }
+  };
+
+  // REQUEST LIST FUNCTIONS
+  window.loadProjectRequests = function() {
+      $('#requestsTable tbody').html('<tr><td colspan="6" class="text-center py-8 text-gray-500"><i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2 text-purple-600"></i><br>Loading Requests...</td></tr>');
+
+      google.script.run.withSuccessHandler(function(data) {
+          allRequests = data;
+          renderRequestsTable(data);
+      }).getProjectRequests('LIMB_CENTRE');
+  };
+
+  function renderRequestsTable(data) {
+      if ($.fn.DataTable.isDataTable('#requestsTable')) { $('#requestsTable').DataTable().destroy(); }
+
+      if (!data || data.length === 0) {
+        $('#requestsTable tbody').html('<tr><td colspan="6" class="text-center py-10 bg-gray-50 text-gray-500">No requests found.</td></tr>');
+        return;
+      }
+
+      $('#requestsTable').DataTable({
+          data: data,
+          destroy: true,
+          order: [[0, 'desc']], // Sort by Request ID (timestamp based roughly)
+          columns: [
+              { data: 'Request_ID', className: "font-mono text-xs font-bold" },
+              { data: 'Patient_Name', className: "font-bold text-gray-700" },
+              { data: 'Request_Type' },
+              { data: 'Cost_Estimate', className: "font-mono", render: c => c ? Number(c).toLocaleString() : '-' },
+              { data: 'Status_Synced_From_HQ', className: "text-center", render: s => {
+                   let cls = "bg-gray-100 text-gray-800";
+                   if(s === 'Pending') cls = "bg-orange-100 text-orange-800";
+                   if(s === 'Approved') cls = "bg-green-100 text-green-800";
+                   if(s === 'Rejected') cls = "bg-red-100 text-red-800";
+                   return `<span class="${cls} text-xs px-2 py-1 rounded font-bold border border-opacity-20 border-gray-400">${s}</span>`;
+              }},
+              { data: null, className: "text-right", render: function(d, t, r) {
+                  const rowId = r._row;
+                  return `
+                    <div class="flex justify-end gap-2">
+                        <button onclick="viewRequestDetails(${rowId})" class="text-blue-600 hover:text-blue-800" title="View"><i class="fa-solid fa-eye"></i></button>
+                        <button onclick="editRequest(${rowId})" class="text-green-600 hover:text-green-800" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteRequest(${rowId})" class="text-red-600 hover:text-red-800" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                  `;
+              }}
+          ]
+      });
+  }
+
+  window.viewRequestDetails = function(rowId) {
+      const req = allRequests.find(r => r._row == rowId);
+      if(!req) return;
+      alert(`Request Details:\n\nID: ${req.Request_ID}\nPatient: ${req.Patient_Name}\nType: ${req.Request_Type}\nCost: ${req.Cost_Estimate}\nNotes: ${req.Request_Notes}\nStatus: ${req.Status_Synced_From_HQ}`);
+  };
+
+  window.editRequest = function(rowId) {
+      const req = allRequests.find(r => r._row == rowId);
+      if(!req) return;
+
+      openApprovalRequestForm();
+      $('#edit_request_row').val(rowId);
+
+      // Set Fields
+      $('#approval_patient_select').val(req.Patient_ID).trigger('change');
+      $('input[name="Cost"]').val(req.Cost_Estimate);
+      $('select[name="Priority"]').val(req.Priority);
+      $('textarea[name="Request_Notes"]').val(req.Request_Notes);
+
+      // Handle Type (Check if standard or other)
+      const standardTypes = ["Sponsorship for Surgery", "OPD Treatment", "Casting Procedure", "DB Shoes", "Physiotherapy Sessions", "Artificial Limb", "Rehabilitation Support", "Medication", "Diagnostic Tests"];
+      if (standardTypes.includes(req.Request_Type)) {
+          $('#request_type_select').val(req.Request_Type).trigger('change');
+      } else {
+          $('#request_type_select').val('Other').trigger('change');
+          $('#request_type_other').val(req.Request_Type);
+      }
+
+      $('#btn_submit_request').html('<i class="fa-solid fa-save mr-2"></i> Update Request');
+  };
+
+  window.deleteRequest = function(rowId) {
+      if(!confirm("Are you sure you want to delete this request?")) return;
+
+      google.script.run.withSuccessHandler(function() {
+          loadProjectRequests();
+      }).withFailureHandler(function(err) {
+          alert("Error: " + err.message);
+      }).deleteProjectRequest('LIMB_CENTRE', rowId);
   };
 
   // Init Logic - Check if jQuery is ready before firing
