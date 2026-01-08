@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <title>DWS Portal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.css">
+
+    <!-- REQUIRED LIBRARIES - ORDER MATTERS -->
+    <!-- 1. jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- 2. DataTables JS -->
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.js"></script>
+    <!-- 3. ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+      body { font-family: 'Poppins', sans-serif; background-color: #f3f4f6; }
+      .sidebar { background-color: #0f766e; color: white; min-height: 100vh; }
+      .nav-item:hover { background-color: #115e59; cursor: pointer; }
+      .active-nav { background-color: #134e4a; border-left: 4px solid #34d399; }
+      .card { background: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+
+      /* Loader */
+      .loader { border: 4px solid #f3f3f3; border-top: 4px solid #0f766e; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+      /* Login Overlay */
+      #login-overlay {
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+          background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+          z-index: 9999; display: flex; justify-content: center; align-items: center;
+      }
+    </style>
+  </head>
+  <body class="flex">
+
+    <!-- LOGIN OVERLAY -->
+    <div id="login-overlay">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
+            <div class="mb-6">
+                <i class="fa-solid fa-hand-holding-heart text-5xl text-teal-600 mb-4"></i>
+                <h2 class="text-3xl font-bold text-gray-800">DWS PORTAL</h2>
+                <p class="text-gray-500 text-sm">Secure Access Login</p>
+            </div>
+
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Email Address</label>
+                    <input type="email" id="login_email" class="w-full rounded-lg border-gray-300 p-3 shadow-sm focus:border-teal-500 focus:ring-teal-500" placeholder="Enter your authorized email">
+                </div>
+                <div id="login_error" class="text-red-500 text-xs font-bold hidden bg-red-50 p-2 rounded">
+                    <i class="fa-solid fa-circle-exclamation mr-1"></i> Access Denied. Email not found.
+                </div>
+                <button onclick="attemptLogin()" id="btn_login" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-lg shadow-lg transition transform hover:-translate-y-1">
+                    Login to System
+                </button>
+                <div class="text-center mt-4">
+                    <span class="text-xs text-gray-400">Restricted Area. Authorized Personnel Only.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- APP CONTAINER (Hidden initially) -->
+    <div id="app-container" class="flex w-full h-screen hidden">
+        <!-- Sidebar Partial -->
+        <?!= include('sidebar'); ?>
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col h-screen overflow-hidden">
+          <!-- Top Bar -->
+          <header class="bg-white shadow p-4 flex justify-between items-center z-10">
+            <h2 class="text-xl font-bold text-gray-700" id="page-title">Dashboard</h2>
+            <div class="flex items-center space-x-4">
+              <div class="text-right">
+                 <div class="text-sm font-bold text-gray-700" id="user-name">Guest</div>
+                 <div class="text-xs text-gray-500" id="user-role">Verify Identity</div>
+              </div>
+              <div class="h-10 w-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                <i class="fa-solid fa-user"></i>
+              </div>
+            </div>
+          </header>
+          <!-- Dynamic Page Content -->
+          <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6" id="main-content">
+             <?!= include('dashboard'); ?>
+          </main>
+        </div>
+    </div>
+
+    <!-- Logic Script -->
+    <?!= include('js'); ?>
+
+    <script>
+       // LOGIN LOGIC
+       function attemptLogin() {
+           const email = $('#login_email').val().trim();
+           if(!email) { alert("Please enter your email."); return; }
+
+           const btn = $('#btn_login');
+           const originalText = btn.text();
+           btn.html('<i class="fa-solid fa-circle-notch fa-spin"></i> Verifying...').prop('disabled', true);
+           $('#login_error').addClass('hidden');
+
+           google.script.run.withSuccessHandler(function(response) {
+               if(response.allowed) {
+                   // Success
+                   $('#login-overlay').fadeOut(500, function() {
+                       $('#app-container').removeClass('hidden').addClass('flex');
+                       // Initialize App Data
+                       $('#user-name').text(response.name);
+                       $('#user-role').text(response.role);
+
+                       // Trigger global init if available
+                       if(typeof initializeApp === 'function') initializeApp(response);
+                   });
+               } else {
+                   // Fail
+                   $('#login_error').removeClass('hidden');
+                   btn.text(originalText).prop('disabled', false);
+               }
+           }).withFailureHandler(function(err) {
+               alert("Connection Error: " + err.message);
+               btn.text(originalText).prop('disabled', false);
+           }).verifyUserLogin(email);
+       }
+
+       // Allow 'Enter' key to login
+       $('#login_email').on('keypress', function (e) {
+            if(e.which === 13) attemptLogin();
+       });
+    </script>
+  </body>
+</html>

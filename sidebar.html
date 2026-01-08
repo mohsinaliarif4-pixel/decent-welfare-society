@@ -1,0 +1,221 @@
+<div class="sidebar w-64 flex-shrink-0 transition-all duration-300 hidden md:block flex flex-col" id="sidebar">
+
+  <!-- LOGO HEADER -->
+  <div class="h-16 flex items-center justify-center border-b border-teal-700 bg-teal-900 shadow-md">
+    <div class="text-center flex items-center gap-2">
+      <i class="fa-solid fa-hand-holding-heart text-2xl text-teal-300"></i>
+      <h1 class="text-lg font-bold tracking-wider text-white">DWS PORTAL</h1>
+    </div>
+  </div>
+
+  <!-- MENU ITEMS -->
+  <nav class="flex-1 overflow-y-auto mt-5 px-3 space-y-1 pb-10" id="static-sidebar-menu">
+
+    <!-- DASHBOARD -->
+    <a onclick="loadPage('dashboard')" class="nav-item group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-teal-100 hover:bg-teal-800 hover:text-white transition cursor-pointer">
+       <i class="fa-solid fa-gauge-high mr-3 text-lg w-6 text-center"></i>
+       Dashboard
+    </a>
+    <a onclick="loadPage('approvals')" class="nav-item group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-teal-100 hover:bg-teal-800 hover:text-white transition cursor-pointer">
+       <i class="fa-solid fa-check-double mr-3 text-lg w-6 text-center"></i>
+       Approvals
+    </a>
+
+    <!-- === SECTION: PROJECTS === -->
+    <div class="mt-6 mb-2 px-3 text-xs font-bold text-teal-400 uppercase tracking-wider">
+       --- PROJECTS ---
+    </div>
+
+    <!-- 1. LIMB CENTRE -->
+    <button onclick="toggleMenu('menu_limb', this)" class="w-full group flex items-center justify-between px-3 py-2 text-sm font-bold text-white bg-teal-800 rounded-lg mb-1 hover:bg-teal-700 transition focus:outline-none">
+        <div class="flex items-center">
+            <i class="fa-solid fa-wheelchair mr-3 text-teal-300 text-lg w-6 text-center"></i>
+            Limb Centre
+        </div>
+        <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200"></i>
+    </button>
+    <div id="menu_limb" class="hidden pl-4 space-y-1 mb-4 border-l-2 border-teal-800 ml-4 mt-1 bg-teal-900 bg-opacity-30 rounded-r-lg">
+        <a onclick="loadPage('limb_centre')" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-teal-400 mr-2"></span> Registration
+        </a>
+        <a onclick="loadPage('limb_clinical')" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-teal-400 mr-2"></span> Clinical Records
+        </a>
+        <a onclick="loadPage('limb_surgery')" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-teal-400 mr-2"></span> Surgery Log
+        </a>
+        <a onclick="loadPage('limb_inventory')" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-teal-400 mr-2"></span> Limb Inventory
+        </a>
+    </div>
+
+    <!-- 2. DISPENSARY -->
+    <button onclick="toggleMenu('menu_dispensary', this)" class="w-full group flex items-center justify-between px-3 py-2 text-sm font-bold text-white bg-teal-800 rounded-lg mb-1 hover:bg-teal-700 transition focus:outline-none">
+        <div class="flex items-center">
+            <i class="fa-solid fa-pills mr-3 text-teal-300 text-lg w-6 text-center"></i>
+            Dispensary
+        </div>
+        <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200"></i>
+    </button>
+    <div id="menu_dispensary" class="hidden pl-4 space-y-1 mb-4 border-l-2 border-teal-800 ml-4 mt-1 bg-teal-900 bg-opacity-30 rounded-r-lg">
+        <a onclick="openDispensaryTab('opd', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-2"></span> OPD Desk
+        </a>
+        <a onclick="openDispensaryTab('pharmacy_pos', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-2"></span> Pharmacy POS
+        </a>
+        <a onclick="openDispensaryTab('inventory', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-2"></span> Stock Store
+        </a>
+        <a onclick="openDispensaryTab('requisitions', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-2"></span> Requisitions
+        </a>
+    </div>
+
+    <!-- 3. FOOD PACKAGE -->
+    <button onclick="toggleMenu('menu_ration', this)" class="w-full group flex items-center justify-between px-3 py-2 text-sm font-bold text-white bg-teal-800 rounded-lg mb-1 hover:bg-teal-700 transition focus:outline-none">
+        <div class="flex items-center">
+            <i class="fa-solid fa-box-open mr-3 text-teal-300 text-lg w-6 text-center"></i>
+            Food Package
+        </div>
+        <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200"></i>
+    </button>
+    <div id="menu_ration" class="hidden pl-4 space-y-1 mb-4 border-l-2 border-teal-800 ml-4 mt-1 bg-teal-900 bg-opacity-30 rounded-r-lg">
+        <a onclick="openRationTab('new_family', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-orange-400 mr-2"></span> New Family
+        </a>
+        <a onclick="openRationTab('distribution', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-orange-400 mr-2"></span> Distribution
+        </a>
+        <a onclick="openRationTab('inventory', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-orange-400 mr-2"></span> Inventory
+        </a>
+        <a onclick="openRationTab('log', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-orange-400 mr-2"></span> Reports
+        </a>
+    </div>
+
+    <!-- 4. MEDICAL CAMPS -->
+    <button onclick="toggleMenu('menu_medical', this)" class="w-full group flex items-center justify-between px-3 py-2 text-sm font-bold text-white bg-teal-800 rounded-lg mb-1 hover:bg-teal-700 transition focus:outline-none">
+        <div class="flex items-center">
+            <i class="fa-solid fa-tent mr-3 text-teal-300 text-lg w-6 text-center"></i>
+            Medical Camps
+        </div>
+        <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200"></i>
+    </button>
+    <div id="menu_medical" class="hidden pl-4 space-y-1 mb-4 border-l-2 border-teal-800 ml-4 mt-1 bg-teal-900 bg-opacity-30 rounded-r-lg">
+        <a onclick="openCampTab('schedule', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-red-400 mr-2"></span> Camp Schedule
+        </a>
+        <a onclick="openCampTab('reception', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-red-400 mr-2"></span> Reception
+        </a>
+        <a onclick="openCampTab('doctor', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-red-400 mr-2"></span> Doctor Desk
+        </a>
+        <a onclick="openCampTab('reports', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-red-400 mr-2"></span> Reports
+        </a>
+        <a onclick="openCampTab('stock', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-red-400 mr-2"></span> Stock
+        </a>
+    </div>
+
+    <!-- === SECTION: ADMIN (UPDATED) === -->
+    <div class="mt-6 mb-2 px-3 text-xs font-bold text-teal-400 uppercase tracking-wider">
+       --- ADMIN ---
+    </div>
+
+    <!-- ACCOUNTS MANAGEMENT (UPDATED: DIRECT LINKS) -->
+    <button onclick="toggleMenu('menu_accounts', this)" class="w-full group flex items-center justify-between px-3 py-2 text-sm font-bold text-white bg-teal-800 rounded-lg mb-1 hover:bg-teal-700 transition focus:outline-none">
+        <div class="flex items-center">
+            <i class="fa-solid fa-file-invoice-dollar mr-3 text-teal-300 text-lg w-6 text-center"></i>
+            Accounts
+        </div>
+        <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200"></i>
+    </button>
+    <div id="menu_accounts" class="hidden pl-4 space-y-1 mb-4 border-l-2 border-teal-800 ml-4 mt-1 bg-teal-900 bg-opacity-30 rounded-r-lg">
+        <a onclick="loadPage('Accounts_Dashboard')" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-2"></span> Dashboard
+        </a>
+        <a onclick="loadPage('General_Ledger')" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-2"></span> General Ledger
+        </a>
+        <a onclick="loadPage('Donors')" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-2"></span> Donor DB
+        </a>
+        <a onclick="loadPage('Community')" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-2"></span> Community
+        </a>
+        <a onclick="loadPage('Reports')" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 mr-2"></span> Reporting
+        </a>
+    </div>
+
+    <!-- HR & PAYROLL -->
+    <button onclick="toggleMenu('menu_hr', this)" class="w-full group flex items-center justify-between px-3 py-2 text-sm font-bold text-white bg-teal-800 rounded-lg mb-1 hover:bg-teal-700 transition focus:outline-none">
+        <div class="flex items-center">
+            <i class="fa-solid fa-users-gear mr-3 text-teal-300 text-lg w-6 text-center"></i>
+            HR & Payroll
+        </div>
+        <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200"></i>
+    </button>
+    <div id="menu_hr" class="hidden pl-4 space-y-1 mb-4 border-l-2 border-teal-800 ml-4 mt-1 bg-teal-900 bg-opacity-30 rounded-r-lg">
+        <a onclick="openHRTab('staff', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2"></span> Staff Directory
+        </a>
+        <a onclick="openHRTab('payroll', this)" class="nav-item group flex items-center px-3 py-2 text-sm font-medium rounded-r-lg text-teal-100 hover:bg-teal-700 hover:text-white transition cursor-pointer">
+           <span class="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2"></span> Payroll Process
+        </a>
+    </div>
+
+    <!-- USER MANAGEMENT -->
+    <a onclick="loadPage('User_Management')" class="nav-item group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-teal-100 hover:bg-teal-800 hover:text-white transition cursor-pointer">
+       <i class="fa-solid fa-user-lock mr-3 text-lg w-6 text-center"></i>
+       User Management
+    </a>
+
+  </nav>
+
+  <!-- FOOTER -->
+  <div class="p-4 border-t border-teal-800 bg-teal-900">
+     <div class="text-xs text-teal-400 text-center">System v5.3 (Live)</div>
+  </div>
+
+  <!-- SIDEBAR LOGIC -->
+  <script>
+    function toggleMenu(menuId, btn) {
+        $('#' + menuId).slideToggle(200);
+        const icon = $(btn).find('.fa-chevron-down');
+        if (icon.hasClass('rotate-180')) { icon.removeClass('rotate-180'); }
+        else { icon.addClass('rotate-180'); }
+    }
+
+    // Tab Switchers
+    function openDispensaryTab(tabName, element) { handleTabSwitch('DISPENSARY_TAB', 'dispensary', 'switchTab', 'view_opd', tabName, element); }
+    function openRationTab(tabName, element) { handleTabSwitch('RATION_TAB', 'ration', 'switchRationTab', 'view_new_family', tabName, element); }
+    function openCampTab(tabName, element) { handleTabSwitch('CAMP_TAB', 'medical_camps', 'switchCampTab', 'view_schedule', tabName, element); }
+    function openHRTab(tabName, element) { handleTabSwitch('HR_TAB', 'hr_payroll', 'switchHRTab', 'view_staff', tabName, element); }
+
+    function handleTabSwitch(globalVar, pageId, switchFunc, checkElemId, tabName, element) {
+       const allNavItems = document.querySelectorAll('.nav-item');
+       allNavItems.forEach(el => { el.classList.remove('bg-teal-700', 'text-white', 'shadow-inner'); });
+       if (element) { element.classList.add('bg-teal-700', 'text-white', 'shadow-inner'); }
+       window[globalVar] = tabName;
+
+       if (typeof window[switchFunc] === 'function' && document.getElementById(checkElemId)) {
+           window[switchFunc](tabName);
+       } else {
+           if(typeof loadPage === 'function') {
+               loadPage(pageId);
+           } else {
+               if (typeof google !== 'undefined') {
+                   google.script.run.withSuccessHandler(html => {
+                       $('#main-content').html(html);
+                   }).getPageContent(pageId);
+               }
+           }
+       }
+    }
+  </script>
+</div>

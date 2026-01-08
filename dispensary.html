@@ -1,0 +1,604 @@
+<!-- IMPORTS: Essential Libraries for Styling and Logic -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
+<div class="p-4 no-print">
+
+  <!-- HEADER -->
+  <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+    <div>
+      <h2 class="text-2xl font-bold text-teal-800">
+        Jubaida Gatrad Free Dispensary <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-full">v1.3</span>
+      </h2>
+      <p class="text-gray-600 text-sm">OPD, Pharmacy & Finance System</p>
+    </div>
+
+    <!-- NAVIGATION TABS (Internal Fallback) -->
+    <!-- These can be hidden once the Sidebar is fully integrated -->
+    <div class="flex bg-gray-100 p-1 rounded-lg">
+       <button onclick="switchTab('opd')" id="tab_opd" class="px-4 py-2 text-sm font-bold rounded-md transition bg-white text-teal-700 shadow-sm">OPD Desk</button>
+       <button onclick="switchTab('pharmacy_pos')" id="tab_pharmacy_pos" class="px-4 py-2 text-sm font-bold rounded-md transition text-gray-600 hover:bg-gray-200">Pharmacy POS</button>
+       <button onclick="switchTab('inventory')" id="tab_inventory" class="px-4 py-2 text-sm font-bold rounded-md transition text-gray-600 hover:bg-gray-200">Stock Store</button>
+       <button onclick="switchTab('requisitions')" id="tab_requisitions" class="px-4 py-2 text-sm font-bold rounded-md transition text-gray-600 hover:bg-gray-200">Requisitions</button>
+    </div>
+  </div>
+
+  <!-- ERROR ALERT -->
+  <div id="dispensary_alert" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+     <p class="text-red-700 font-bold text-sm" id="dispensary_error_msg"></p>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- TAB 1: OPD REGISTRY -->
+  <!-- ======================================================= -->
+  <div id="view_opd" class="tab-view animate-fade-in-down">
+     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- OPD FORM -->
+        <div class="lg:col-span-1">
+           <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+              <div class="bg-teal-700 px-4 py-3 border-b border-teal-800">
+                 <h3 class="text-white font-bold"><i class="fa-solid fa-user-doctor mr-2"></i>New OPD Entry</h3>
+              </div>
+              <div class="p-4">
+                 <form id="form_opd" onsubmit="handleOPDSubmit(event)">
+                    <input type="hidden" name="OPD_ID" id="opd_id">
+
+                    <div class="mb-3">
+                       <label class="block text-xs font-bold text-gray-700 mb-1">Patient Name <span class="text-red-500">*</span></label>
+                       <input type="text" name="Patient_Name" required class="w-full rounded border-gray-300 shadow-sm text-sm focus:ring-teal-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                       <div>
+                          <label class="block text-xs font-bold text-gray-700 mb-1">Age</label>
+                          <input type="text" name="Age" class="w-full rounded border-gray-300 shadow-sm text-sm">
+                       </div>
+                       <div>
+                          <label class="block text-xs font-bold text-gray-700 mb-1">Date</label>
+                          <input type="date" name="Date" id="opd_date" required class="w-full rounded border-gray-300 shadow-sm text-sm">
+                       </div>
+                    </div>
+
+                    <div class="mb-3">
+                       <label class="block text-xs font-bold text-gray-700 mb-1">Consulting Doctor</label>
+                       <select name="Doctor_Consulted" required class="w-full rounded border-gray-300 shadow-sm text-sm">
+                          <option>Dr. General Physician</option>
+                          <option>Dr. Pediatrician</option>
+                          <option>Dr. Gynaecologist</option>
+                       </select>
+                    </div>
+
+                    <div class="mb-3">
+                       <label class="block text-xs font-bold text-gray-700 mb-1">Symptoms</label>
+                       <textarea name="Symptoms" rows="2" class="w-full rounded border-gray-300 shadow-sm text-sm"></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                       <label class="block text-xs font-bold text-gray-700 mb-1">Fee Type <span class="text-red-500">*</span></label>
+                       <select name="Fee_Type" class="w-full rounded border-gray-300 shadow-sm text-sm font-bold text-teal-800">
+                          <option value="Free">Free (Needy)</option>
+                          <option value="Paid">Paid (General)</option>
+                          <option value="Subsidized">Subsidized (Staff/Ref)</option>
+                       </select>
+                    </div>
+
+                    <button type="submit" id="btn_opd_save" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded shadow-md transition">Register Patient</button>
+                 </form>
+              </div>
+           </div>
+        </div>
+
+        <!-- OPD LIST -->
+        <div class="lg:col-span-2">
+           <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden h-full flex flex-col">
+              <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                 <h3 class="text-gray-700 font-bold">Recent Patients</h3>
+                 <button onclick="loadOPD()" class="text-xs bg-white border border-gray-300 px-2 py-1 rounded hover:bg-gray-50"><i class="fa-solid fa-sync mr-1"></i> Refresh</button>
+              </div>
+              <div class="p-0 flex-grow overflow-auto">
+                 <table id="opdTable" class="w-full text-sm text-left text-gray-500">
+                    <thead class="bg-gray-100 text-gray-700 uppercase text-xs sticky top-0">
+                       <tr>
+                          <th class="px-4 py-3">Token/ID</th>
+                          <th class="px-4 py-3">Date</th>
+                          <th class="px-4 py-3">Patient</th>
+                          <th class="px-4 py-3">Doctor</th>
+                          <th class="px-4 py-3">Type</th>
+                          <th class="px-4 py-3 text-right">Action</th>
+                       </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100" id="opd_list_body"></tbody>
+                 </table>
+                 <div id="opd_loading" class="text-center py-10 text-gray-400"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading data...</div>
+              </div>
+           </div>
+        </div>
+     </div>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- TAB 2: PHARMACY POS (Sales) -->
+  <!-- ======================================================= -->
+  <div id="view_pharmacy_pos" class="tab-view hidden animate-fade-in-down">
+     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- BILLING SECTION -->
+        <div class="lg:col-span-2">
+           <div class="bg-white rounded-xl shadow-md border border-gray-100">
+              <div class="bg-blue-700 px-4 py-3 border-b border-blue-800 flex justify-between items-center">
+                 <h3 class="text-white font-bold"><i class="fa-solid fa-cash-register mr-2"></i>Pharmacy Billing</h3>
+                 <div class="text-blue-100 text-xs">Date: <span id="pos_date_display"></span></div>
+              </div>
+
+              <div class="p-4 border-b border-gray-100">
+                 <!-- SELECT PATIENT -->
+                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">1. Select Patient (Optional)</label>
+                 <select id="pos_patient_select" onchange="onPosPatientSelect()" class="w-full rounded-lg border-blue-200 bg-blue-50 shadow-sm focus:ring-blue-500 text-sm font-bold">
+                    <option value="">-- Walk-in Customer --</option>
+                 </select>
+                 <div class="mt-2 flex gap-4 text-xs text-gray-500">
+                    <span>Type: <b id="pos_p_type" class="text-blue-600">Paid</b></span>
+                    <span>OPD ID: <b id="pos_p_id">N/A</b></span>
+                 </div>
+              </div>
+
+              <div class="p-4 bg-gray-50">
+                 <!-- ADD MEDICINES -->
+                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">2. Add Medicine</label>
+                 <div class="flex gap-2 mb-2">
+                    <select id="pos_med_select" class="flex-grow rounded border-gray-300 shadow-sm text-sm">
+                       <option value="">Loading Inventory...</option>
+                    </select>
+                    <input type="number" id="pos_qty" placeholder="Qty" class="w-20 rounded border-gray-300 shadow-sm text-sm" min="1" value="1">
+                    <button onclick="addToCart()" class="bg-blue-600 text-white px-4 rounded shadow hover:bg-blue-700"><i class="fa-solid fa-plus"></i></button>
+                 </div>
+              </div>
+
+              <!-- CART TABLE -->
+              <div class="p-0">
+                 <table class="w-full text-sm text-left text-gray-600">
+                    <thead class="bg-gray-100 text-xs uppercase">
+                       <tr>
+                          <th class="px-4 py-2">Medicine</th>
+                          <th class="px-4 py-2 w-16">Qty</th>
+                          <th class="px-4 py-2 w-20 text-right">Price</th>
+                          <th class="px-4 py-2 w-20 text-right">Total</th>
+                          <th class="px-4 py-2 w-10"></th>
+                       </tr>
+                    </thead>
+                    <tbody id="cart_body" class="divide-y divide-gray-100 bg-white">
+                       <tr><td colspan="5" class="text-center py-6 text-gray-400 italic">Cart is empty</td></tr>
+                    </tbody>
+                 </table>
+              </div>
+
+              <!-- TOTALS FOOTER -->
+              <div class="p-4 bg-gray-50 border-t border-gray-200">
+                 <div class="flex justify-between items-end mb-4">
+                    <div class="text-xs text-gray-500">
+                       <p>Payment Method: <select id="pos_pay_method" class="border-none bg-transparent font-bold text-gray-700 p-0"><option>Cash</option><option>Free (Charity)</option></select></p>
+                    </div>
+                    <div class="text-right">
+                       <p class="text-xs text-gray-500">Total Items: <span id="cart_count">0</span></p>
+                       <p class="text-2xl font-bold text-blue-800">Rs <span id="cart_total">0</span></p>
+                    </div>
+                 </div>
+                 <button onclick="checkout()" id="btn_checkout" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg shadow-lg transition transform active:scale-95 text-lg">
+                    Complete Sale
+                 </button>
+              </div>
+           </div>
+        </div>
+
+        <!-- RECENT SALES -->
+        <div class="lg:col-span-1">
+           <div class="bg-white rounded-xl shadow border border-gray-100 h-full overflow-hidden flex flex-col">
+              <div class="bg-gray-50 px-4 py-2 border-b font-bold text-gray-600 text-sm">Recent Sales</div>
+              <div class="flex-grow overflow-auto p-0">
+                 <div id="sales_list" class="divide-y divide-gray-100"></div>
+                 <div id="sales_loading" class="text-center py-4 text-xs text-gray-400">Loading...</div>
+              </div>
+           </div>
+        </div>
+
+     </div>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- TAB 3: INVENTORY STORE -->
+  <!-- ======================================================= -->
+  <div id="view_inventory" class="tab-view hidden animate-fade-in-down">
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-teal-800 font-bold text-lg"><i class="fa-solid fa-boxes-stacked mr-2"></i>Medicine Stock</h3>
+        <button onclick="openMedForm()" class="bg-teal-600 text-white px-3 py-1.5 rounded text-sm font-bold shadow hover:bg-teal-700"><i class="fa-solid fa-plus mr-1"></i> Add Medicine</button>
+      </div>
+      <div class="p-4">
+         <table id="invTable" class="display w-full text-sm text-left text-gray-500">
+            <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+               <tr>
+                  <th>Medicine Name</th>
+                  <th>Batch / Expiry</th>
+                  <th>Stock</th>
+                  <th>Cost</th>
+                  <th>Price</th>
+                  <th class="text-right">Action</th>
+               </tr>
+            </thead>
+            <tbody></tbody>
+         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- TAB 4: REQUISITIONS -->
+  <!-- ======================================================= -->
+  <div id="view_requisitions" class="tab-view hidden animate-fade-in-down">
+     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl shadow p-6">
+           <h3 class="font-bold text-gray-800 mb-4">Request New Supplies</h3>
+           <form id="form_req" onsubmit="handleReqSubmit(event)">
+              <div class="mb-3"><label class="block text-xs font-bold mb-1">Item Name</label><input type="text" name="Item_Name" required class="w-full rounded border-gray-300 shadow-sm"></div>
+              <div class="mb-3"><label class="block text-xs font-bold mb-1">Quantity Required</label><input type="text" name="Quantity_Required" required class="w-full rounded border-gray-300 shadow-sm"></div>
+              <div class="mb-3"><label class="block text-xs font-bold mb-1">Urgency</label><select name="Urgency_Level" class="w-full rounded border-gray-300 shadow-sm"><option>Normal</option><option>High</option><option>Critical</option></select></div>
+              <button type="submit" id="btn_req_save" class="bg-blue-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-blue-700">Submit Request</button>
+           </form>
+        </div>
+        <div class="bg-white rounded-xl shadow overflow-hidden">
+           <div class="bg-gray-50 px-4 py-3 border-b font-bold text-gray-600">Active Requests</div>
+           <div id="req_list" class="divide-y divide-gray-100 p-0"></div>
+           <div id="req_loading" class="p-4 text-center text-gray-400 text-xs">Loading...</div>
+        </div>
+     </div>
+  </div>
+
+</div>
+
+<!-- MODAL: MEDICINE FORM -->
+<div id="med_modal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+   <div class="bg-white rounded-lg shadow-xl w-11/12 md:w-1/3 overflow-hidden">
+      <div class="bg-teal-700 px-4 py-3 flex justify-between items-center text-white">
+         <h3 class="font-bold">Medicine Details</h3>
+         <button onclick="$('#med_modal').addClass('hidden')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="p-6">
+         <form id="form_med" onsubmit="handleMedSubmit(event)">
+            <input type="hidden" name="_row" id="med_row">
+            <input type="hidden" name="Medicine_ID" id="med_id">
+            <div class="mb-3"><label class="block text-xs font-bold mb-1">Medicine Name</label><input type="text" name="Medicine_Name" id="med_name" required class="w-full rounded border-gray-300"></div>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+               <div><label class="block text-xs font-bold mb-1">Batch No</label><input type="text" name="Batch_No" id="med_batch" class="w-full rounded border-gray-300"></div>
+               <div><label class="block text-xs font-bold mb-1">Expiry Date</label><input type="date" name="Expiry_Date" id="med_expiry" class="w-full rounded border-gray-300"></div>
+            </div>
+            <div class="grid grid-cols-3 gap-3 mb-3">
+               <div><label class="block text-xs font-bold mb-1">Cost Price</label><input type="number" name="Cost_Price" id="med_cp" class="w-full rounded border-gray-300"></div>
+               <div><label class="block text-xs font-bold mb-1">Sale Price</label><input type="number" name="Sales_Price" id="med_sp" required class="w-full rounded border-gray-300"></div>
+               <div><label class="block text-xs font-bold mb-1">Stock Qty</label><input type="number" name="Current_Stock" id="med_qty" required class="w-full rounded border-gray-300"></div>
+            </div>
+            <div class="flex justify-end gap-2 mt-4">
+               <button type="button" onclick="$('#med_modal').addClass('hidden')" class="px-3 py-2 border rounded text-gray-600">Cancel</button>
+               <button type="submit" id="btn_med_save" class="px-3 py-2 bg-teal-600 text-white rounded font-bold">Save</button>
+            </div>
+         </form>
+      </div>
+   </div>
+</div>
+
+<style>
+  .animate-fade-in-down { animation: fadeInDown 0.3s ease-out; }
+  @keyframes fadeInDown { from { opacity: 0; transform: translate3d(0, -10px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+  .tab-btn-active { background-color: #0f766e !important; color: white !important; }
+</style>
+
+<script>
+  let opdData = [], inventoryData = [], salesData = [], reqData = [];
+  let cart = [];
+
+  // --- INITIALIZATION ---
+  (function(){
+     const today = new Date().toISOString().split('T')[0];
+     $('#opd_date').val(today);
+     $('#pos_date_display').text(today);
+
+     // Added checks to prevent errors if Google Object is not ready
+     if(typeof google !== 'undefined') {
+        loadOPD();
+        loadInventory();
+        loadSales();
+        loadReqs();
+     }
+
+     // NEW: SIDEBAR INTEGRATION SUPPORT
+     // Check if the sidebar requested a specific tab via global variable
+     // Usage in sidebar: window.DISPENSARY_TAB = 'pharmacy_pos'; loadPage('dispensary');
+     if(typeof window.DISPENSARY_TAB !== 'undefined' && window.DISPENSARY_TAB) {
+        switchTab(window.DISPENSARY_TAB);
+     } else {
+        switchTab('opd'); // Default to OPD
+     }
+  })();
+
+  function switchTab(tabId) {
+     $('.tab-view').addClass('hidden');
+     $('#view_' + tabId).removeClass('hidden');
+     // Update Buttons
+     $('[id^="tab_"]').removeClass('tab-btn-active bg-teal-700 text-white').addClass('text-gray-600 hover:bg-gray-200');
+     $('#tab_' + tabId).addClass('tab-btn-active');
+  }
+
+  // --- TAB 1: OPD LOGIC ---
+  function loadOPD() {
+     if(typeof google === 'undefined') return;
+     $('#opd_loading').removeClass('hidden'); $('#opd_list_body').empty();
+     google.script.run.withSuccessHandler(data => {
+        opdData = data;
+        $('#opd_loading').addClass('hidden');
+        renderOPDTable();
+        populatePOSPatients(); // Update POS dropdown
+     }).getData('DISPENSARY', 'OPD_Registry');
+  }
+
+  function renderOPDTable() {
+     const tbody = $('#opd_list_body'); tbody.empty();
+     // Sort by Date Desc
+     const sorted = [...opdData].sort((a,b) => b.OPD_ID.localeCompare(a.OPD_ID)); // Assuming ID is sortable or use date
+
+     sorted.slice(0, 50).forEach(row => { // Show last 50
+        let feeBadge = row.Fee_Type === 'Free' ? 'bg-green-100 text-green-800' : (row.Fee_Type === 'Subsidized' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800');
+        tbody.append(`
+           <tr class="hover:bg-gray-50 border-b">
+              <td class="px-4 py-2 font-mono text-xs font-bold text-gray-600">${row.OPD_ID}</td>
+              <td class="px-4 py-2">${row.Date}</td>
+              <td class="px-4 py-2 font-bold text-gray-800">${row.Patient_Name} <span class="text-xs font-normal text-gray-500">(${row.Age})</span></td>
+              <td class="px-4 py-2 text-xs">${row.Doctor_Consulted}</td>
+              <td class="px-4 py-2"><span class="px-2 py-1 rounded text-[10px] font-bold ${feeBadge}">${row.Fee_Type}</span></td>
+              <td class="px-4 py-2 text-right"><button onclick="sendToPOS('${row.OPD_ID}')" class="text-blue-600 hover:underline text-xs"><i class="fa-solid fa-cart-shopping mr-1"></i> Bill</button></td>
+           </tr>
+        `);
+     });
+  }
+
+  window.handleOPDSubmit = function(e) {
+     e.preventDefault();
+     const btn = $('#btn_opd_save'); btn.text('Saving...').prop('disabled', true);
+     const fd = {}; $('#form_opd').serializeArray().forEach(i => fd[i.name] = i.value);
+     fd['OPD_ID'] = "OPD-" + Date.now();
+
+     google.script.run.withSuccessHandler(() => {
+        alert("Patient Registered!");
+        $('#form_opd')[0].reset();
+        $('#opd_date').val(new Date().toISOString().split('T')[0]);
+        loadOPD();
+        btn.text('Register Patient').prop('disabled', false);
+     }).withFailureHandler(err => {
+        $('#dispensary_error_msg').text("Error: " + err.message); $('#dispensary_alert').removeClass('hidden');
+        btn.text('Register Patient').prop('disabled', false);
+     }).addData('DISPENSARY', 'OPD_Registry', fd);
+  };
+
+  // --- TAB 2: INVENTORY LOGIC ---
+  function loadInventory() {
+     if(typeof google === 'undefined') return;
+     google.script.run.withSuccessHandler(data => {
+        inventoryData = data;
+        renderInvTable();
+        populatePOSMedicines();
+     }).getData('DISPENSARY', 'Pharmacy_Inventory');
+  }
+
+  function renderInvTable() {
+     if ($.fn.DataTable.isDataTable('#invTable')) { $('#invTable').DataTable().destroy(); }
+     $('#invTable').DataTable({
+        data: inventoryData, destroy: true, scrollX: true, autoWidth: false,
+        columns: [
+           { data: 'Medicine_Name', className: "font-bold text-gray-700" },
+           { data: null, render: r => `<div class="text-xs text-gray-500">B: ${r.Batch_No || '-'}</div><div class="text-xs text-red-400">Exp: ${r.Expiry_Date || '-'}</div>` },
+           { data: 'Current_Stock', className: "font-mono font-bold text-center", render: q => Number(q) < 10 ? `<span class="text-red-600">${q}</span>` : `<span class="text-green-600">${q}</span>` },
+           { data: 'Cost_Price' },
+           { data: 'Sales_Price', className: "font-bold" },
+           { data: null, className: "text-right", render: r => `<button onclick="editMed(${r._row})" class="text-gray-400 hover:text-teal-600"><i class="fa-solid fa-pen"></i></button>` }
+        ]
+     });
+  }
+
+  window.openMedForm = function() { $('#form_med')[0].reset(); $('#med_id').val("MED-"+Date.now()); $('#med_modal').removeClass('hidden'); };
+  window.editMed = function(rowId) {
+     const r = inventoryData.find(x => x._row == rowId); if(!r) return;
+     $('#med_row').val(r._row); $('#med_id').val(r.Medicine_ID); $('#med_name').val(r.Medicine_Name); $('#med_batch').val(r.Batch_No); $('#med_expiry').val(r.Expiry_Date); $('#med_cp').val(r.Cost_Price); $('#med_sp').val(r.Sales_Price); $('#med_qty').val(r.Current_Stock);
+     $('#med_modal').removeClass('hidden');
+  };
+  window.handleMedSubmit = function(e) {
+     e.preventDefault();
+     const fd = {}; $('#form_med').serializeArray().forEach(i => fd[i.name] = i.value);
+     const isEdit = fd._row ? true : false;
+     const handler = isEdit ? 'updateData' : 'addData';
+     const args = isEdit ? ['DISPENSARY', 'Pharmacy_Inventory', fd._row, fd] : ['DISPENSARY', 'Pharmacy_Inventory', fd];
+
+     google.script.run.withSuccessHandler(() => {
+        alert("Inventory Saved!"); $('#med_modal').addClass('hidden'); loadInventory();
+     })[handler](...args);
+  };
+
+  // --- TAB 3: POS LOGIC ---
+  function populatePOSPatients() {
+     const sel = $('#pos_patient_select'); sel.empty().append('<option value="">-- Walk-in Customer --</option>');
+     // Filter Today's OPD or Recent
+     opdData.forEach(p => {
+        sel.append(`<option value="${p.OPD_ID}" data-type="${p.Fee_Type}">${p.Patient_Name} (${p.Fee_Type})</option>`);
+     });
+  }
+
+  window.onPosPatientSelect = function() {
+     const opt = $('#pos_patient_select option:selected');
+     const type = opt.data('type') || 'Paid';
+     $('#pos_p_type').text(type).removeClass('text-blue-600 text-green-600').addClass(type === 'Free' ? 'text-green-600' : 'text-blue-600');
+     $('#pos_p_id').text(opt.val() || 'N/A');
+
+     // Auto-set payment method
+     if(type === 'Free') $('#pos_pay_method').val('Free (Charity)');
+     else $('#pos_pay_method').val('Cash');
+
+     renderCart(); // Re-calc prices if logic changes based on type
+  };
+
+  function populatePOSMedicines() {
+     const sel = $('#pos_med_select'); sel.empty().append('<option value="">-- Select Medicine --</option>');
+     inventoryData.forEach(m => {
+        if(Number(m.Current_Stock) > 0)
+          sel.append(`<option value="${m.Medicine_ID}" data-price="${m.Sales_Price}" data-name="${m.Medicine_Name}" data-stock="${m.Current_Stock}">${m.Medicine_Name} (Stock: ${m.Current_Stock}) - Rs ${m.Sales_Price}</option>`);
+     });
+  }
+
+  window.addToCart = function() {
+     const opt = $('#pos_med_select option:selected');
+     if(!opt.val()) return;
+     const id = opt.val();
+     const name = opt.data('name');
+     const price = parseFloat(opt.data('price')) || 0;
+     const stock = parseInt(opt.data('stock'));
+     const qty = parseInt($('#pos_qty').val());
+
+     if(qty > stock) { alert("Insufficient Stock!"); return; }
+
+     // Check existing
+     const existing = cart.find(x => x.id === id);
+     if(existing) {
+        if(existing.qty + qty > stock) { alert("Stock Limit Reached!"); return; }
+        existing.qty += qty;
+     } else {
+        cart.push({ id, name, price, qty });
+     }
+     renderCart();
+  };
+
+  window.removeFromCart = function(idx) { cart.splice(idx, 1); renderCart(); };
+
+  function renderCart() {
+     const tbody = $('#cart_body'); tbody.empty();
+     let total = 0;
+     let count = 0;
+     const isFree = $('#pos_pay_method').val().includes('Free');
+
+     cart.forEach((item, idx) => {
+        const itemTotal = isFree ? 0 : (item.price * item.qty);
+        total += itemTotal;
+        count += item.qty;
+        tbody.append(`
+           <tr class="border-b border-gray-50">
+              <td class="px-4 py-2 font-bold text-gray-700">${item.name}</td>
+              <td class="px-4 py-2 text-center">${item.qty}</td>
+              <td class="px-4 py-2 text-right text-gray-400">${isFree ? '0 (Free)' : item.price}</td>
+              <td class="px-4 py-2 text-right font-bold text-gray-800">${itemTotal}</td>
+              <td class="px-4 py-2 text-center"><button onclick="removeFromCart(${idx})" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-times"></i></button></td>
+           </tr>
+        `);
+     });
+
+     if(cart.length === 0) tbody.html('<tr><td colspan="5" class="text-center py-6 text-gray-400 italic">Cart is empty</td></tr>');
+
+     $('#cart_total').text(total);
+     $('#cart_count').text(count);
+  }
+
+  // Handle Payment Method Change to recalculate totals
+  $('#pos_pay_method').change(renderCart);
+
+  window.checkout = function() {
+     if(cart.length === 0) return;
+     const btn = $('#btn_checkout'); btn.text('Processing...').prop('disabled', true);
+
+     const saleId = "SALE-" + Date.now();
+     const opdRef = $('#pos_patient_select').val();
+     const payMethod = $('#pos_pay_method').val();
+     const date = new Date().toISOString().split('T')[0];
+
+     // Prepare Sales Rows
+     const salesRows = cart.map(item => ({
+        Sale_ID: saleId,
+        OPD_ID_Ref: opdRef || 'Walk-in',
+        Date: date,
+        Medicine_Name: item.name,
+        Quantity_Sold: item.qty,
+        Total_Amount: payMethod.includes('Free') ? 0 : (item.price * item.qty),
+        Payment_Method: payMethod
+     }));
+
+     // 1. Save Sales Data (Batch? No, loop for now as per generic script limits)
+     // We will send one by one or create a batch function if available. Assuming loop.
+     const promises = salesRows.map(row =>
+         new Promise((resolve, reject) => {
+             google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).addData('DISPENSARY', 'Pharmacy_Sales', row);
+         })
+     );
+
+     // 2. Update Inventory Stock
+     const stockPromises = cart.map(item => {
+         const invItem = inventoryData.find(i => i.Medicine_ID === item.id);
+         if(invItem) {
+             invItem.Current_Stock = parseInt(invItem.Current_Stock) - item.qty;
+             return new Promise((resolve, reject) => {
+                 google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).updateData('DISPENSARY', 'Pharmacy_Inventory', invItem._row, invItem);
+             });
+         }
+         return Promise.resolve();
+     });
+
+     Promise.all([...promises, ...stockPromises]).then(() => {
+        alert("Sale Complete!");
+        cart = [];
+        renderCart();
+        loadSales(); // Refresh Sales List
+        loadInventory(); // Refresh Stock
+        btn.text('Complete Sale').prop('disabled', false);
+     }).catch(err => {
+        alert("Error during checkout: " + err.message);
+        btn.text('Complete Sale').prop('disabled', false);
+     });
+  };
+
+  function loadSales() {
+     if(typeof google === 'undefined') return;
+     $('#sales_loading').removeClass('hidden');
+     google.script.run.withSuccessHandler(data => {
+        salesData = data;
+        $('#sales_loading').addClass('hidden');
+        const list = $('#sales_list'); list.empty();
+        // Group by Sale ID or just list recent
+        data.reverse().slice(0, 20).forEach(s => {
+           list.append(`<div class="p-3 text-xs"><div class="font-bold text-gray-700">${s.Medicine_Name} (x${s.Quantity_Sold})</div><div class="flex justify-between mt-1 text-gray-500"><span>${s.Date}</span><span class="font-bold text-blue-600">Rs ${s.Total_Amount}</span></div></div>`);
+        });
+     }).getData('DISPENSARY', 'Pharmacy_Sales');
+  }
+
+  window.sendToPOS = function(opdId) {
+     switchTab('pharmacy_pos');
+     $('#pos_patient_select').val(opdId).trigger('change');
+  };
+
+  // --- TAB 4: REQUISITIONS ---
+  function loadReqs() {
+      if(typeof google === 'undefined') return;
+      google.script.run.withSuccessHandler(data => {
+          reqData = data;
+          $('#req_loading').addClass('hidden');
+          const div = $('#req_list'); div.empty();
+          data.reverse().forEach(r => {
+             let color = r.Urgency_Level === 'Critical' ? 'text-red-600' : 'text-gray-600';
+             div.append(`<div class="p-3 flex justify-between items-center"><div class="text-sm"><div class="font-bold ${color}">${r.Item_Name}</div><div class="text-xs text-gray-500">Qty: ${r.Quantity_Required} | ${r.Urgency_Level}</div></div><span class="text-xs bg-gray-100 px-2 py-1 rounded">${r.Status || 'Pending'}</span></div>`);
+          });
+      }).getData('DISPENSARY', 'Requisitions');
+  }
+
+  window.handleReqSubmit = function(e) {
+     e.preventDefault();
+     const fd = {}; $('#form_req').serializeArray().forEach(i => fd[i.name] = i.value);
+     fd['Req_ID'] = "REQ-"+Date.now(); fd['Status'] = 'Pending';
+     google.script.run.withSuccessHandler(() => { alert("Request Sent"); $('#form_req')[0].reset(); loadReqs(); }).addData('DISPENSARY', 'Requisitions', fd);
+  };
+
+</script>

@@ -1,0 +1,76 @@
+<div class="p-4 no-print">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold text-orange-800">Community Empowerment Cases</h2>
+    <button onclick="window.openCaseModal()" class="bg-orange-600 text-white px-3 py-2 rounded text-sm hover:bg-orange-700 shadow-sm font-bold"><i class="fa-solid fa-folder-plus mr-1"></i> New Case</button>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden p-4">
+       <table id="tableCommunity" class="display w-full text-sm text-left text-gray-500">
+           <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+               <tr><th>Case ID</th><th>Applicant</th><th>CNIC</th><th>Type</th><th>Req / Appr</th><th>Status</th><th class="text-right">Actions</th></tr>
+           </thead>
+           <tbody></tbody>
+       </table>
+  </div>
+</div>
+
+<!-- COMMUNITY MODAL -->
+<div id="community_modal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-1/3 overflow-hidden animate-fade-in-down">
+    <div class="bg-orange-600 px-6 py-4 flex justify-between items-center text-white">
+      <h3 class="font-bold text-lg">Community Empowerment Case</h3>
+      <button onclick="$('#community_modal').addClass('hidden')"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <div class="p-6">
+      <form id="form_community" onsubmit="window.handleCommunitySubmit(event)">
+        <input type="hidden" name="_row" id="case_row">
+        <input type="hidden" name="Case_ID" id="new_case_id">
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Applicant Name *</label><input type="text" name="Applicant_Name" id="case_name" required class="w-full rounded border-gray-300 shadow-sm"></div>
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">CNIC Number *</label><input type="text" name="CNIC_Number" id="case_cnic" required class="w-full rounded border-gray-300 shadow-sm"></div>
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Request Type</label><select name="Request_Type" id="case_type" class="w-full rounded border-gray-300 shadow-sm"><option>Micro-Finance Loan</option><option>Medical Aid</option><option>Education Support</option><option>Marriage Support</option></select></div>
+        <div class="grid grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold text-gray-700 mb-1">Requested Amount</label><input type="number" name="Amount_Requested" id="case_req_amt" required class="w-full rounded border-gray-300 shadow-sm"></div><div><label class="block text-sm font-bold text-gray-700 mb-1">Approved Amount</label><input type="number" name="Amount_Approved" id="case_appr_amt" class="w-full rounded border-gray-300 shadow-sm"></div></div>
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Repayment Status</label><select name="Repayment_Status" id="case_status" class="w-full rounded border-gray-300 shadow-sm"><option>Pending</option><option>Approved</option><option>In Progress</option><option>Completed</option><option>Rejected</option></select></div>
+        <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-1">Case Notes</label><textarea name="Case_Notes" id="case_notes" rows="2" class="w-full rounded border-gray-300 shadow-sm"></textarea></div>
+        <button type="submit" id="btn_save_case" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded shadow-lg">Save Case</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  var cases = [];
+  var isEditMode = false;
+
+  (function(){
+      if(typeof google !== 'undefined') {
+          // Using Range_Community_Empowerment
+          google.script.run.withSuccessHandler(d => { cases = d; renderCommunityTable(); }).getData('HQ', 'Range_Community_Empowerment');
+      }
+  })();
+
+  function renderCommunityTable() {
+      if ($.fn.DataTable.isDataTable('#tableCommunity')) { $('#tableCommunity').DataTable().destroy(); }
+      $('#tableCommunity').DataTable({
+          data: cases, destroy: true, autoWidth: false,
+          columns: [
+              { data: 'Case_ID', className: "font-mono text-xs" },
+              { data: 'Applicant_Name', className: "font-bold" },
+              { data: 'CNIC_Number' },
+              { data: 'Request_Type' },
+              { data: null, render: r => `Req: ${Number(r.Amount_Requested).toLocaleString()}<br>Apr: ${Number(r.Amount_Approved || 0).toLocaleString()}` },
+              { data: 'Repayment_Status', render: s => `<span class="px-2 py-1 rounded text-xs font-bold bg-gray-100">${s}</span>` },
+              { data: null, className: "text-right", render: (d,t,r) => `<button onclick="window.editCase(${r._row})" class="text-blue-600 hover:bg-blue-50 p-1 rounded"><i class="fa-solid fa-pen"></i></button>` }
+          ]
+      });
+  }
+
+  window.openCaseModal = function() { $('#form_community')[0].reset(); isEditMode=false; $('#new_case_id').val("CASE-" + Date.now()); $('#community_modal').removeClass('hidden'); };
+  window.editCase = function(rowId) { const c = cases.find(r => r._row === rowId); if(!c) return; isEditMode = true; $('#case_row').val(c._row); $('#new_case_id').val(c.Case_ID); $('#case_name').val(c.Applicant_Name); $('#case_cnic').val(c.CNIC_Number); $('#case_type').val(c.Request_Type); $('#case_req_amt').val(c.Amount_Requested); $('#case_appr_amt').val(c.Amount_Approved); $('#case_status').val(c.Repayment_Status); $('#case_notes').val(c.Case_Notes); $('#community_modal').removeClass('hidden'); };
+  window.handleCommunitySubmit = function(e) { e.preventDefault(); const btn = $('#btn_save_case'); btn.text('Saving...').prop('disabled', true); const fd = {}; $('#form_community').serializeArray().forEach(i => fd[i.name] = i.value); const action = isEditMode ? 'updateData' : 'addData';
+      // Use Tab Name 'Community_Empowerment' for saving
+      const args = isEditMode ? ['HQ', 'Community_Empowerment', fd._row, fd] : ['HQ', 'Community_Empowerment', fd];
+      google.script.run.withSuccessHandler(() => { alert("Case Saved!"); $('#community_modal').addClass('hidden');
+          google.script.run.withSuccessHandler(d => { cases = d; renderCommunityTable(); }).getData('HQ', 'Range_Community_Empowerment');
+          btn.text('Save Case').prop('disabled',false); })[action](...args);
+  };
+</script>

@@ -1,0 +1,86 @@
+<div class="p-4 no-print">
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h2 class="text-2xl font-bold text-teal-800">Accounts Dashboard</h2>
+      <p class="text-gray-600 text-sm">Financial Overview</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
+        <div class="text-xs font-bold text-gray-400 uppercase">Total Revenue (YTD)</div>
+        <div class="text-2xl font-bold text-green-700 mt-1">Rs <span id="stat_income">0</span></div>
+     </div>
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500">
+        <div class="text-xs font-bold text-gray-400 uppercase">Total Expenses (YTD)</div>
+        <div class="text-2xl font-bold text-red-700 mt-1">Rs <span id="stat_expense">0</span></div>
+     </div>
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
+        <div class="text-xs font-bold text-gray-400 uppercase">Net Assets / Balance</div>
+        <div class="text-2xl font-bold text-blue-700 mt-1">Rs <span id="stat_balance">0</span></div>
+     </div>
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-orange-500">
+        <div class="text-xs font-bold text-gray-400 uppercase">Active Cases</div>
+        <div class="text-2xl font-bold text-orange-700 mt-1" id="stat_cases">0</div>
+     </div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow border border-gray-100 p-6">
+      <h3 class="text-lg font-bold text-gray-800 mb-4">Recent Vouchers</h3>
+      <table id="tableRecent" class="w-full text-sm text-left text-gray-500">
+         <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+            <tr><th>Date</th><th>Type</th><th>Account Head</th><th>Amount</th><th>Status</th></tr>
+         </thead>
+         <tbody id="recent_body"><tr><td colspan="5" class="text-center py-4">Loading...</td></tr></tbody>
+      </table>
+   </div>
+</div>
+
+<script>
+  (function(){
+      // Initialization for Dashboard
+      if(typeof google === 'undefined') return;
+
+      // 1. Load Financial Data (Range_Accounts_Journal)
+      google.script.run.withSuccessHandler(function(data) {
+          let income=0, expense=0;
+
+          if (!data || data.length === 0) {
+              $('#stat_income').text("0");
+              $('#stat_expense').text("0");
+              $('#stat_balance').text("0");
+              $('#recent_body').html('<tr><td colspan="5" class="text-center py-4 text-gray-400">No records found.</td></tr>');
+              return;
+          }
+
+          data.forEach(t => {
+              const amt = Number(t.Amount) || 0;
+              // Check Type column
+              if(t.Type === 'Income' && t.Status !== 'Cancelled') income += amt;
+              else if(t.Status !== 'Cancelled') expense += amt;
+          });
+
+          $('#stat_income').text(income.toLocaleString());
+          $('#stat_expense').text(expense.toLocaleString());
+          $('#stat_balance').text((income - expense).toLocaleString());
+
+          // Recent Table
+          const recent = data.slice().reverse().slice(0,10);
+          const tbody = $('#recent_body'); tbody.empty();
+
+          recent.forEach(r => {
+             let color = r.Type === 'Income' ? 'text-green-600' : 'text-red-600';
+             // Fallback for Head if undefined
+             const head = r.Account_Head || r.Category || '-';
+             tbody.append(`<tr class="border-b hover:bg-gray-50"><td class="py-2">${r.Date}</td><td class="font-bold ${color}">${r.Type}</td><td>${head}</td><td class="font-bold">${Number(r.Amount).toLocaleString()}</td><td class="text-xs">${r.Status}</td></tr>`);
+          });
+      }).getData('HQ', 'Range_Accounts_Journal'); // Updated Range Name
+
+      // 2. Load Cases Data for Stats
+      google.script.run.withSuccessHandler(data => {
+          if (data) {
+             $('#stat_cases').text(data.filter(c => c.Repayment_Status !== 'Completed').length);
+          }
+      }).getData('HQ', 'Range_Community_Empowerment');
+  })();
+</script>

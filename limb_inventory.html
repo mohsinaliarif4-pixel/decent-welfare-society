@@ -1,0 +1,316 @@
+<div class="p-4 no-print">
+
+  <!-- HEADER -->
+  <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+    <div>
+      <h2 class="text-2xl font-bold text-teal-800">
+        Inventory & Store <span class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-full">v1.0</span>
+      </h2>
+      <p class="text-gray-600 text-sm">Manage Raw Materials & Components</p>
+    </div>
+
+    <div class="flex gap-2">
+      <button onclick="loadInventory()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium py-2 px-4 rounded-lg shadow-sm border border-blue-200 transition">
+        <i class="fa-solid fa-arrows-rotate mr-1"></i> Refresh
+      </button>
+      <button onclick="openItemForm()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition transform hover:scale-105">
+        <i class="fa-solid fa-box-open mr-2"></i> Add New Item
+      </button>
+    </div>
+  </div>
+
+  <!-- STATS CARDS -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500 border-gray-100">
+        <div class="text-xs font-bold text-gray-400 uppercase">Total Items</div>
+        <div class="text-2xl font-bold text-gray-800 mt-1" id="stat_total">0</div>
+     </div>
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500 border-gray-100">
+        <div class="text-xs font-bold text-gray-400 uppercase">Low Stock Alerts</div>
+        <div class="text-2xl font-bold text-red-600 mt-1" id="stat_low">0</div>
+     </div>
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500 border-gray-100">
+        <div class="text-xs font-bold text-gray-400 uppercase">Categories</div>
+        <div class="text-2xl font-bold text-gray-800 mt-1" id="stat_cats">0</div>
+     </div>
+  </div>
+
+  <!-- INVENTORY LIST -->
+  <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+    <div class="bg-gradient-to-r from-gray-50 to-white px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+      <h3 class="text-teal-800 font-bold text-lg"><i class="fa-solid fa-warehouse mr-2"></i>Stock List</h3>
+
+      <!-- Category Filter -->
+      <select id="filter_cat" onchange="renderTable()" class="text-xs border-gray-300 rounded-lg shadow-sm py-1 px-2 bg-white">
+         <option value="All">All Categories</option>
+         <option value="Raw Material">Raw Material</option>
+         <option value="Components">Components</option>
+         <option value="Consumables">Consumables</option>
+         <option value="Tools">Tools</option>
+      </select>
+    </div>
+
+    <div class="p-4 w-full">
+      <table id="invTable" class="display w-full text-sm text-left text-gray-500" style="width:100%">
+        <thead class="bg-gray-50 text-gray-700 uppercase text-xs font-bold tracking-wider">
+          <tr>
+            <th class="rounded-l-lg py-3 px-4">Item Name</th>
+            <th class="py-3 px-4">Category</th>
+            <th class="py-3 px-4">Unit</th>
+            <th class="py-3 px-4">Quantity</th>
+            <th class="py-3 px-4">Status</th>
+            <th class="rounded-r-lg py-3 px-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL 1: ADD/EDIT ITEM -->
+<div id="item_modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-1/2 overflow-hidden animate-fade-in-down">
+    <div class="bg-teal-700 px-6 py-4 flex justify-between items-center">
+      <h3 class="text-lg font-bold text-white" id="modal_title">Add New Item</h3>
+      <button onclick="$('#item_modal').addClass('hidden')" class="text-white hover:text-teal-200"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <div class="p-6">
+      <form id="form_item" onsubmit="handleItemSubmit(event)">
+        <input type="hidden" name="_row" id="edit_row">
+        <input type="hidden" name="Item_ID" id="edit_id">
+        <input type="hidden" name="Last_Updated" id="edit_updated">
+
+        <div class="mb-4">
+           <label class="block text-sm font-bold text-gray-700 mb-1">Item Name <span class="text-red-500">*</span></label>
+           <input type="text" name="Item_Name" id="inp_name" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-teal-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+           <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Category</label>
+              <select name="Category" id="inp_cat" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-teal-500">
+                 <option>Raw Material</option>
+                 <option>Components</option>
+                 <option>Consumables</option>
+                 <option>Tools</option>
+              </select>
+           </div>
+           <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Unit</label>
+              <select name="Unit" id="inp_unit" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-teal-500">
+                 <option>Kg</option>
+                 <option>Pcs</option>
+                 <option>Liters</option>
+                 <option>Meters</option>
+                 <option>Box</option>
+              </select>
+           </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+           <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Initial Qty</label>
+              <input type="number" name="Quantity" id="inp_qty" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-teal-500">
+           </div>
+           <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">Reorder Level (Alert)</label>
+              <input type="number" name="Reorder_Level" id="inp_alert" value="10" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-teal-500">
+           </div>
+        </div>
+
+        <div class="mb-4">
+           <label class="block text-sm font-bold text-gray-700 mb-1">Notes</label>
+           <textarea name="Notes" id="inp_notes" rows="2" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-teal-500"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+           <button type="button" onclick="$('#item_modal').addClass('hidden')" class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50">Cancel</button>
+           <button type="submit" id="btn_save" class="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 font-bold">Save Item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 2: ADJUST STOCK (+/-) -->
+<div id="stock_modal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+  <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-1/3 overflow-hidden animate-fade-in-down">
+    <div class="bg-blue-600 px-6 py-4 flex justify-between items-center">
+      <h3 class="text-lg font-bold text-white">Adjust Stock</h3>
+      <button onclick="$('#stock_modal').addClass('hidden')" class="text-white hover:text-blue-200"><i class="fa-solid fa-xmark text-xl"></i></button>
+    </div>
+    <div class="p-6">
+       <div class="text-center mb-6">
+          <h4 class="text-xl font-bold text-gray-800" id="stk_name">Item Name</h4>
+          <p class="text-sm text-gray-500">Current Stock: <span id="stk_current" class="font-bold text-blue-600 text-lg">0</span> <span id="stk_unit">units</span></p>
+       </div>
+
+       <div class="flex justify-center gap-4 mb-6">
+          <button onclick="setStockAction('add')" id="btn_mode_add" class="flex-1 py-2 rounded-lg border border-green-200 bg-green-50 text-green-700 font-bold hover:bg-green-100 ring-2 ring-green-500"><i class="fa-solid fa-plus mr-1"></i> Add (Purchase)</button>
+          <button onclick="setStockAction('sub')" id="btn_mode_sub" class="flex-1 py-2 rounded-lg border border-red-200 bg-white text-gray-600 hover:bg-red-50"><i class="fa-solid fa-minus mr-1"></i> Consume</button>
+       </div>
+
+       <div class="mb-4">
+          <label class="block text-sm font-bold text-gray-700 mb-1 text-center">Enter Quantity</label>
+          <input type="number" id="stk_amount" min="1" class="w-full text-center text-2xl font-bold rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 py-3" placeholder="0">
+       </div>
+
+       <button onclick="commitStockUpdate()" id="btn_update_stock" class="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg transition transform active:scale-95">Update Stock</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .animate-fade-in-down { animation: fadeInDown 0.3s ease-out; }
+  @keyframes fadeInDown { from { opacity: 0; transform: translate3d(0, -20px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+</style>
+
+<script>
+  let inventory = [];
+  let isEditMode = false;
+  let currentStockItem = null;
+  let stockAction = 'add'; // 'add' or 'sub'
+
+  // --- INIT ---
+  (function(){ setTimeout(()=>{ loadInventory(); }, 200); })();
+
+  window.loadInventory = function() {
+     if(typeof google === 'undefined') return;
+     $('#invTable tbody').html('<tr><td colspan="6" class="text-center py-8 text-gray-500"><i class="fa-solid fa-circle-notch fa-spin text-teal-600 text-xl"></i> Loading Stock...</td></tr>');
+
+     google.script.run.withSuccessHandler(data => {
+         inventory = data;
+         calculateStats();
+         renderTable();
+     }).getData('LIMB_CENTRE', 'Limb_Inventory');
+  };
+
+  function calculateStats() {
+      $('#stat_total').text(inventory.length);
+      const low = inventory.filter(i => Number(i.Quantity) <= Number(i.Reorder_Level)).length;
+      $('#stat_low').text(low);
+      const cats = [...new Set(inventory.map(i => i.Category))].length;
+      $('#stat_cats').text(cats);
+  }
+
+  window.renderTable = function() {
+      const filter = $('#filter_cat').val();
+      let data = filter === 'All' ? inventory : inventory.filter(i => i.Category === filter);
+
+      if ($.fn.DataTable.isDataTable('#invTable')) { $('#invTable').DataTable().destroy(); }
+
+      $('#invTable').DataTable({
+          data: data, destroy: true, scrollX: true, autoWidth: false, order: [[0, 'asc']],
+          columns: [
+             { data: 'Item_Name', className: "font-bold text-gray-700" },
+             { data: 'Category' },
+             { data: 'Unit' },
+             { data: 'Quantity', className: "font-mono font-bold text-center", render: (q,t,r) => {
+                 const isLow = Number(q) <= Number(r.Reorder_Level);
+                 return isLow ? `<span class="text-red-600">${q}</span>` : `<span class="text-green-600">${q}</span>`;
+             }},
+             { data: null, render: r => {
+                 const isLow = Number(r.Quantity) <= Number(r.Reorder_Level);
+                 return isLow ? `<span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold border border-red-200">Low Stock</span>` : `<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold border border-green-200">In Stock</span>`;
+             }},
+             { data: null, className: "text-right", render: function(data, type, row) {
+                  return `
+                  <div class="flex justify-end gap-2">
+                     <button onclick="openStockModal(${row._row})" class="bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 px-3 py-1 rounded text-xs font-bold"><i class="fa-solid fa-right-left mr-1"></i> Adjust</button>
+                     <button onclick="editItem(${row._row})" class="text-gray-400 hover:text-teal-600 p-1"><i class="fa-solid fa-pen"></i></button>
+                  </div>`;
+             }}
+          ]
+      });
+  };
+
+  // --- ITEM FORM ---
+  window.openItemForm = function() {
+      $('#form_item')[0].reset();
+      isEditMode = false;
+      $('#modal_title').text('Add New Item');
+      $('#edit_id').val("I-" + new Date().getTime());
+      $('#item_modal').removeClass('hidden');
+  };
+
+  window.editItem = function(rowId) {
+      const rec = inventory.find(r => r._row === rowId);
+      if(!rec) return;
+      isEditMode = true;
+      $('#modal_title').text('Edit Item Details');
+      $('#edit_row').val(rec._row);
+      $('#edit_id').val(rec.Item_ID);
+      $('#inp_name').val(rec.Item_Name);
+      $('#inp_cat').val(rec.Category);
+      $('#inp_unit').val(rec.Unit);
+      $('#inp_qty').val(rec.Quantity);
+      $('#inp_alert').val(rec.Reorder_Level);
+      $('#inp_notes').val(rec.Notes);
+      $('#item_modal').removeClass('hidden');
+  };
+
+  window.handleItemSubmit = function(e) {
+      e.preventDefault();
+      const btn = $('#btn_save'); btn.text('Saving...').prop('disabled', true);
+      const fd = {}; $('#form_item').serializeArray().forEach(i => fd[i.name] = i.value);
+      fd['Last_Updated'] = new Date().toISOString().split('T')[0];
+
+      if(!isEditMode) {
+          google.script.run.withSuccessHandler(() => { alert("Item Added!"); $('#item_modal').addClass('hidden'); loadInventory(); btn.text('Save Item').prop('disabled', false); }).addData('LIMB_CENTRE', 'Limb_Inventory', fd);
+      } else {
+          google.script.run.withSuccessHandler(() => { alert("Item Updated!"); $('#item_modal').addClass('hidden'); loadInventory(); btn.text('Save Item').prop('disabled', false); }).updateData('LIMB_CENTRE', 'Limb_Inventory', fd._row, fd);
+      }
+  };
+
+  // --- STOCK ADJUSTMENT ---
+  window.openStockModal = function(rowId) {
+      currentStockItem = inventory.find(r => r._row === rowId);
+      if(!currentStockItem) return;
+      $('#stk_name').text(currentStockItem.Item_Name);
+      $('#stk_current').text(currentStockItem.Quantity);
+      $('#stk_unit').text(currentStockItem.Unit);
+      $('#stk_amount').val('');
+      setStockAction('add'); // Reset to Add mode
+      $('#stock_modal').removeClass('hidden');
+  };
+
+  window.setStockAction = function(mode) {
+      stockAction = mode;
+      if(mode === 'add') {
+          $('#btn_mode_add').addClass('bg-green-50 text-green-700 ring-2 ring-green-500').removeClass('bg-white text-gray-600');
+          $('#btn_mode_sub').addClass('bg-white text-gray-600').removeClass('bg-red-50 text-red-700 ring-2 ring-red-500');
+          $('#btn_update_stock').text('Add Stock').addClass('bg-blue-600 hover:bg-blue-700').removeClass('bg-red-600 hover:bg-red-700');
+      } else {
+          $('#btn_mode_sub').addClass('bg-red-50 text-red-700 ring-2 ring-red-500').removeClass('bg-white text-gray-600');
+          $('#btn_mode_add').addClass('bg-white text-gray-600').removeClass('bg-green-50 text-green-700 ring-2 ring-green-500');
+          $('#btn_update_stock').text('Consume Stock').addClass('bg-red-600 hover:bg-red-700').removeClass('bg-blue-600 hover:bg-blue-700');
+      }
+  };
+
+  window.commitStockUpdate = function() {
+      const amount = parseInt($('#stk_amount').val());
+      if(!amount || amount <= 0) { alert("Please enter a valid quantity."); return; }
+
+      let newQty = parseInt(currentStockItem.Quantity);
+      if(stockAction === 'add') newQty += amount;
+      else newQty -= amount;
+
+      if(newQty < 0) { alert("Insufficient stock!"); return; }
+
+      const btn = $('#btn_update_stock'); btn.text('Updating...').prop('disabled', true);
+
+      // Create Update Object
+      const updateData = { ...currentStockItem };
+      updateData.Quantity = newQty;
+      updateData.Last_Updated = new Date().toISOString().split('T')[0];
+
+      google.script.run.withSuccessHandler(() => {
+          alert("Stock Updated!");
+          $('#stock_modal').addClass('hidden');
+          loadInventory();
+          btn.prop('disabled', false);
+      }).updateData('LIMB_CENTRE', 'Limb_Inventory', updateData._row, updateData);
+  };
+</script>

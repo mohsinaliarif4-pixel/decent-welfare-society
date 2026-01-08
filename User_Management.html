@@ -1,0 +1,259 @@
+<!-- MODULE-SPECIFIC IMPORTS -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
+<div class="p-4 no-print">
+  <!-- HEADER -->
+  <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+    <div>
+      <h2 class="text-2xl font-bold text-teal-800">
+        User Management <span class="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded-full">Admin</span>
+      </h2>
+      <p class="text-gray-600 text-sm">Manage System Access & Permissions</p>
+    </div>
+
+    <div>
+       <button onclick="window.loadUsers()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium py-2 px-4 rounded-lg shadow-sm border border-blue-200 transition">
+          <i class="fa-solid fa-arrows-rotate mr-1"></i> Refresh List
+       </button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
+        <div class="text-xs font-bold text-gray-400 uppercase">Total Users</div>
+        <div class="text-2xl font-bold text-blue-800 mt-1" id="stat_total_users">0</div>
+     </div>
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
+        <div class="text-xs font-bold text-gray-400 uppercase">Active Admins</div>
+        <div class="text-2xl font-bold text-green-700 mt-1" id="stat_admins">0</div>
+     </div>
+     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-purple-500">
+        <div class="text-xs font-bold text-gray-400 uppercase">Restricted Users</div>
+        <div class="text-2xl font-bold text-purple-700 mt-1" id="stat_restricted">0</div>
+     </div>
+  </div>
+
+  <!-- USER LIST -->
+  <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-teal-800 font-bold text-lg"><i class="fa-solid fa-users-gear mr-2"></i>System Users</h3>
+        <button onclick="window.openUserModal()" class="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-teal-700 shadow-sm flex items-center">
+            <i class="fa-solid fa-user-plus mr-2"></i> Add New User
+        </button>
+      </div>
+      <div class="p-4">
+        <table id="tableUsers" class="display w-full text-sm text-left text-gray-500">
+           <thead class="bg-gray-100 text-gray-700 uppercase text-xs">
+              <tr>
+                 <th class="py-3 px-4">User Name</th>
+                 <th class="py-3 px-4">Email Address</th>
+                 <th class="py-3 px-4">Role</th>
+                 <th class="py-3 px-4">Access Permissions</th>
+                 <th class="py-3 px-4">Status</th>
+                 <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+           </thead>
+           <tbody></tbody>
+        </table>
+      </div>
+  </div>
+</div>
+
+<!-- USER MODAL -->
+<div id="user_modal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-80 flex justify-center items-center">
+    <div class="bg-white rounded-xl shadow-2xl w-11/12 md:w-1/2 overflow-hidden animate-fade-in-down">
+        <div class="bg-teal-700 px-6 py-4 flex justify-between items-center text-white">
+            <h3 class="font-bold text-lg" id="modal_title">Add/Edit User</h3>
+            <button onclick="$('#user_modal').addClass('hidden')"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <div class="p-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
+            <form id="form_user" onsubmit="window.handleUserSubmit(event)">
+                <input type="hidden" name="_row" id="user_row">
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">User Name <span class="text-red-500">*</span></label>
+                        <input type="text" name="Name" id="user_name" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Email Address <span class="text-red-500">*</span></label>
+                        <input type="email" name="User_Email" id="user_email" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-teal-500" placeholder="user@gmail.com">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Role</label>
+                    <select name="Role" id="user_role" onchange="window.togglePermissions()" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-teal-500">
+                        <option value="Viewer">Viewer (Read Only)</option>
+                        <option value="Editor">Editor (Add/Edit)</option>
+                        <option value="Admin">Admin (Full Access)</option>
+                        <option value="Custom">Custom Permissions</option>
+                    </select>
+                </div>
+
+                <!-- PERMISSIONS CHECKBOXES -->
+                <div id="permissions_section" class="mb-4 p-4 bg-gray-50 border rounded-lg hidden">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Specific Module Access</label>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <label class="flex items-center"><input type="checkbox" name="perm" value="finance_edit" class="mr-2"> Finance (Add/Edit)</label>
+                        <label class="flex items-center"><input type="checkbox" name="perm" value="finance_delete" class="mr-2 text-red-600"> Finance (Delete)</label>
+
+                        <label class="flex items-center"><input type="checkbox" name="perm" value="hr_edit" class="mr-2"> HR (Add/Edit)</label>
+                        <label class="flex items-center"><input type="checkbox" name="perm" value="hr_delete" class="mr-2 text-red-600"> HR (Delete)</label>
+
+                        <label class="flex items-center"><input type="checkbox" name="perm" value="inv_edit" class="mr-2"> Inventory (Add/Edit)</label>
+                        <label class="flex items-center"><input type="checkbox" name="perm" value="inv_delete" class="mr-2 text-red-600"> Inventory (Delete)</label>
+
+                         <label class="flex items-center"><input type="checkbox" name="perm" value="approvals" class="mr-2 text-purple-600 font-bold"> Final Approvals</label>
+                    </div>
+                    <input type="hidden" name="Permissions" id="user_perms_str">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Account Status</label>
+                    <select name="Status" id="user_status" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-teal-500">
+                        <option value="Active">Active</option>
+                        <option value="Suspended">Suspended</option>
+                    </select>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t">
+                    <button type="button" onclick="$('#user_modal').addClass('hidden')" class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50 font-bold">Cancel</button>
+                    <button type="submit" id="btn_save_user" class="px-6 py-2 bg-teal-600 text-white rounded font-bold shadow hover:bg-teal-700">Save User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+  .animate-fade-in-down { animation: fadeInDown 0.3s ease-out; }
+  @keyframes fadeInDown { from { opacity: 0; transform: translate3d(0, -20px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+  .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+</style>
+
+<script>
+  (function waitForjQuery() {
+      if (typeof window.jQuery === 'undefined') {
+          setTimeout(waitForjQuery, 100);
+          return;
+      }
+
+      var allUsers = [];
+      var isEditMode = false;
+
+      // INIT
+      (function() {
+         if(typeof google !== 'undefined') window.loadUsers();
+      })();
+
+      window.loadUsers = function() {
+           $('#tableUsers tbody').html('<tr><td colspan="6" class="text-center py-8 text-gray-500"><i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2 text-teal-600"></i><br>Loading Users...</td></tr>');
+
+           // Using actual Tab Name 'System_Users'
+           google.script.run.withSuccessHandler(function(data) {
+               allUsers = data;
+               calcStats();
+               renderUserTable();
+           }).getData('HQ', 'System_Users');
+      };
+
+      function calcStats() {
+           const total = allUsers.length;
+           const admins = allUsers.filter(u => u.Role === 'Admin' && u.Status === 'Active').length;
+           const restricted = allUsers.filter(u => u.Role === 'Custom' || u.Status === 'Suspended').length;
+           $('#stat_total_users').text(total);
+           $('#stat_admins').text(admins);
+           $('#stat_restricted').text(restricted);
+      }
+
+      function renderUserTable() {
+           if ($.fn.DataTable.isDataTable('#tableUsers')) { $('#tableUsers').DataTable().destroy(); }
+
+           $('#tableUsers').DataTable({
+               data: allUsers, destroy: true, autoWidth: false,
+               columns: [
+                   { data: 'Name', className: "font-bold text-gray-800", defaultContent: '-' },
+                   { data: 'User_Email', className: "font-mono text-xs text-gray-600", defaultContent: '-' },
+                   { data: 'Role', render: r => {
+                       if(r === 'Admin') return `<span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded font-bold border border-purple-200">Admin</span>`;
+                       if(r === 'Editor') return `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded font-bold border border-blue-200">Editor</span>`;
+                       if(r === 'Viewer') return `<span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-bold border border-gray-200">Viewer</span>`;
+                       return `<span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded font-bold border border-orange-200">Custom</span>`;
+                   }},
+                   { data: 'Permissions', render: p => p ? `<span class="text-xs text-gray-500 truncate max-w-xs block" title="${p}">${p}</span>` : '<span class="text-xs text-gray-300 italic">Default</span>' },
+                   { data: 'Status', render: s => s === 'Active' ? '<span class="text-green-600 font-bold text-xs"><i class="fa-solid fa-check-circle mr-1"></i> Active</span>' : '<span class="text-red-600 font-bold text-xs"><i class="fa-solid fa-ban mr-1"></i> Suspended</span>' },
+                   { data: null, className: "text-right", render: (d,t,r) => `
+                       <button onclick="window.editUser(${r._row})" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded mr-1" title="Edit Access"><i class="fa-solid fa-pen-to-square"></i></button>
+                       <button onclick="window.deleteUser(${r._row})" class="text-red-600 hover:bg-red-50 p-1.5 rounded" title="Remove User"><i class="fa-solid fa-trash"></i></button>
+                   `}
+               ]
+           });
+      }
+
+      window.openUserModal = function() {
+           $('#form_user')[0].reset();
+           isEditMode = false;
+           $('#modal_title').text('Add New User');
+           $('#user_email').prop('readonly', false);
+           togglePermissions();
+           $('#user_modal').removeClass('hidden');
+      };
+
+      window.editUser = function(rowId) {
+           const u = allUsers.find(r => r._row === rowId); if(!u) return;
+           isEditMode = true;
+           $('#modal_title').text('Edit User Access');
+           $('#user_row').val(u._row);
+           $('#user_email').val(u.User_Email).prop('readonly', true);
+           $('#user_name').val(u.Name);
+           $('#user_role').val(u.Role);
+           $('#user_status').val(u.Status);
+           togglePermissions();
+           if(u.Permissions) {
+               const perms = u.Permissions.split(',');
+               $('input[name="perm"]').each(function() {
+                   $(this).prop('checked', perms.includes($(this).val()));
+               });
+           }
+           $('#user_modal').removeClass('hidden');
+      };
+
+      window.togglePermissions = function() {
+           const role = $('#user_role').val();
+           if(role === 'Custom') { $('#permissions_section').removeClass('hidden'); }
+           else { $('#permissions_section').addClass('hidden'); }
+      };
+
+      window.handleUserSubmit = function(e) {
+           e.preventDefault();
+           const btn = $('#btn_save_user'); btn.text('Saving...').prop('disabled', true);
+           const perms = [];
+           $('input[name="perm"]:checked').each(function() { perms.push($(this).val()); });
+           $('#user_perms_str').val(perms.join(','));
+           const fd = {};
+           $('#form_user').serializeArray().forEach(i => fd[i.name] = i.value);
+           if(fd.Role === 'Admin') fd.Permissions = 'ALL_ACCESS';
+           else if (fd.Role === 'Viewer') fd.Permissions = 'READ_ONLY';
+
+           const method = isEditMode ? 'updateData' : 'addData';
+           // Use Tab Name 'System_Users' for consistency
+           const args = isEditMode ? ['HQ', 'System_Users', fd._row, fd] : ['HQ', 'System_Users', fd];
+
+           google.script.run.withSuccessHandler(() => {
+               alert("User Access Saved!"); $('#user_modal').addClass('hidden'); window.loadUsers(); btn.text('Save User').prop('disabled', false);
+           }).withFailureHandler(err => {
+               alert("Error: " + err.message); btn.text('Save User').prop('disabled', false);
+           })[method](...args);
+      };
+
+      window.deleteUser = function(rowId) {
+           if(!confirm("Are you sure? This will revoke all access for this user.")) return;
+           google.script.run.withSuccessHandler(() => window.loadUsers()).deleteData('HQ', 'System_Users', rowId);
+      };
+  })();
+</script>
